@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>MoodMap — Anlık Duygular</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root {
+    --bg: #0a0a0f; --surface: #13131a; --border: rgba(255,255,255,0.07);
+    --text: #f0eef8; --muted: #6b6880; --accent: #c084fc;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--text); height:100dvh; overflow:hidden; display:flex; flex-direction:column; max-width:430px; margin:0 auto; position:relative; }
+
+  header { padding:14px 20px 12px; display:flex; align-items:center; justify-content:space-between; background:var(--bg); z-index:1000; border-bottom:1px solid var(--border); flex-shrink:0; }
+  .logo { font-family:'Syne',sans-serif; font-weight:800; font-size:20px; letter-spacing:-0.5px; }
+  .logo span { color:var(--accent); }
+  .live-badge { display:flex; align-items:center; gap:6px; font-size:11px; color:var(--muted); font-weight:500; letter-spacing:0.5px; text-transform:uppercase; }
+  .live-dot { width:7px; height:7px; border-radius:50%; background:#34d399; animation:pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(0.8)} }
+
+  #map { flex:1; z-index:1; }
+
+  /* Dark map tiles */
+  .leaflet-tile { filter: brightness(0.6) invert(1) contrast(3) hue-rotate(200deg) saturate(0.3) brightness(0.7); }
+  .leaflet-container { background: #0d0d14; }
+  .leaflet-control-zoom a { background: var(--surface) !important; color: var(--text) !important; border-color: var(--border) !important; }
+  .leaflet-control-zoom a:hover { background: #1f1f2e !important; }
+  .leaflet-control-attribution { display: none; }
+
+  /* Custom marker */
+  .mood-marker { display:flex; flex-direction:column; align-items:center; cursor:pointer; }
+  .mood-bubble { background:rgba(19,19,26,0.92); border:1px solid rgba(255,255,255,0.1); border-radius:20px; padding:5px 9px; display:flex; align-items:center; gap:4px; box-shadow:0 4px 16px rgba(0,0,0,0.5); white-space:nowrap; max-width:130px; backdrop-filter:blur(8px); transition:transform 0.15s; }
+  .mood-bubble:hover { transform:scale(1.05); }
+  .mood-emoji { font-size:14px; }
+  .mood-text { font-size:10px; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:80px; font-family:'DM Sans',sans-serif; }
+  .mood-dot { width:5px; height:5px; border-radius:50%; flex-shrink:0; }
+  .mood-tail { width:2px; height:6px; background:rgba(255,255,255,0.15); border-radius:2px; margin:0 auto; }
+  .mood-pin { width:4px; height:4px; border-radius:50%; background:rgba(255,255,255,0.15); margin:0 auto; }
+
+  /* Stats */
+  #stats-bar { position:absolute; top:70px; left:12px; right:12px; display:flex; gap:8px; z-index:500; pointer-events:none; flex-wrap:wrap; }
+  .stat-pill { background:rgba(10,10,15,0.88); backdrop-filter:blur(10px); border:1px solid var(--border); border-radius:20px; padding:6px 12px; font-size:11px; color:var(--muted); font-weight:500; display:flex; align-items:center; gap:5px; }
+  .stat-pill strong { color:var(--text); font-weight:600; }
+
+  /* Bottom sheet */
+  #bottom-sheet { position:absolute; bottom:0; left:0; right:0; background:var(--surface); border-radius:24px 24px 0 0; border-top:1px solid var(--border); padding:0 20px 32px; z-index:2000; transform:translateY(100%); transition:transform 0.4s cubic-bezier(0.32,0.72,0,1); max-height:80dvh; overflow-y:auto; }
+  #bottom-sheet.open { transform:translateY(0); }
+  .sheet-handle { width:36px; height:4px; background:var(--border); border-radius:2px; margin:12px auto 20px; }
+  .sheet-title { font-family:'Syne',sans-serif; font-size:18px; font-weight:700; margin-bottom:6px; }
+  .sheet-sub { font-size:13px; color:var(--muted); margin-bottom:20px; }
+  .category-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-bottom:20px; }
+  .cat-btn { background:var(--bg); border:2px solid var(--border); border-radius:16px; padding:12px 6px; display:flex; flex-direction:column; align-items:center; gap:5px; cursor:pointer; transition:all 0.2s; color:var(--text); }
+  .cat-btn:hover { transform:scale(1.04); }
+  .cat-btn.selected { border-color:currentColor; background:color-mix(in srgb, currentColor 15%, transparent); }
+  .cat-emoji { font-size:22px; }
+  .cat-label { font-size:10px; color:var(--muted); font-weight:500; }
+  .cat-btn.selected .cat-label { color:currentColor; }
+  .msg-label { font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px; font-weight:500; }
+  .msg-input { width:100%; background:var(--bg); border:1px solid var(--border); border-radius:14px; padding:12px 16px; color:var(--text); font-family:'DM Sans',sans-serif; font-size:14px; outline:none; resize:none; transition:border-color 0.2s; line-height:1.5; height:80px; }
+  .msg-input::placeholder { color:var(--muted); }
+  .msg-input:focus { border-color:var(--accent); }
+  .emoji-row { display:flex; gap:8px; flex-wrap:wrap; margin:12px 0; }
+  .emoji-pick { font-size:22px; cursor:pointer; padding:6px; border-radius:10px; transition:all 0.15s; border:2px solid transparent; background:var(--bg); }
+  .emoji-pick:hover { transform:scale(1.2); }
+  .emoji-pick.selected { border-color:var(--accent); background:rgba(192,132,252,0.1); transform:scale(1.1); }
+  .submit-btn { width:100%; margin-top:16px; padding:16px; background:var(--accent); border:none; border-radius:16px; color:#fff; font-family:'Syne',sans-serif; font-size:16px; font-weight:700; cursor:pointer; transition:all 0.2s; }
+  .submit-btn:hover { opacity:0.9; }
+  .submit-btn:active { transform:scale(0.97); }
+  .submit-btn:disabled { opacity:0.4; cursor:not-allowed; transform:none; }
+
+  #fab { position:absolute; bottom:24px; right:20px; width:56px; height:56px; border-radius:18px; background:var(--accent); border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:24px; box-shadow:0 8px 32px rgba(192,132,252,0.4); z-index:1500; transition:all 0.2s; color:white; }
+  #fab:hover { transform:scale(1.08); }
+  #fab.active { transform:rotate(45deg); background:#ef4444; box-shadow:0 8px 32px rgba(239,68,68,0.4); }
+
+  #toast { position:absolute; top:80px; left:50%; transform:translateX(-50%) translateY(-20px); background:var(--surface); border:1px solid var(--border); border-radius:20px; padding:10px 18px; font-size:13px; font-weight:500; opacity:0; transition:all 0.3s; z-index:3000; white-space:nowrap; pointer-events:none; }
+  #toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+  #overlay { position:absolute; inset:0; background:rgba(0,0,0,0.5); z-index:1500; opacity:0; pointer-events:none; transition:opacity 0.3s; }
+  #overlay.show { opacity:1; pointer-events:all; }
+
+  #bottom-sheet::-webkit-scrollbar { width:3px; }
+  #bottom-sheet::-webkit-scrollbar-thumb { background:var(--border); border-radius:2px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Mood<span>Map</span></div>
+  <div class="live-badge"><div class="live-dot"></div> Canlı</div>
+</header>
+
+<div id="map"></div>
+
+<div id="stats-bar">
+  <div class="stat-pill">🌍 <strong id="count-stat">0</strong> kişi paylaştı</div>
+  <div class="stat-pill" id="top-mood-pill">🏆 En çok: —</div>
+</div>
+
+<button id="fab">＋</button>
+<div id="toast"></div>
+<div id="overlay"></div>
+
+<div id="bottom-sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-title">Şu an nasıl hissediyorsun?</div>
+  <div class="sheet-sub">Anonim olarak paylaşılacak. Kimse kim olduğunu göremez.</div>
+  <div class="msg-label">Kategori seç</div>
+  <div class="category-grid" id="cat-grid"></div>
+  <div class="msg-label">Emoji seç</div>
+  <div class="emoji-row" id="emoji-row"></div>
+  <div class="msg-label">Ne hissediyorsun? (isteğe bağlı)</div>
+  <textarea class="msg-input" id="mood-text" placeholder="Bir şeyler yaz..." maxlength="60"></textarea>
+  <button class="submit-btn" id="submit-btn">Paylaş 🚀</button>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://minmpdxaeeamctkhqlhb.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1pbm1wZHhhZWVhbWN0a2hxbGhiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyMzkxMjAsImV4cCI6MjA4ODgxNTEyMH0.b7vhmOO8Xpm5NtPkq3HrWWNWlWEbtIPtkDTBW9h4TIc';
+const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const CATEGORIES = [
+  { id:'happy',    label:'Mutlu',     emoji:'😊', color:'#fbbf24' },
+  { id:'sad',      label:'Üzgün',     emoji:'😢', color:'#60a5fa' },
+  { id:'angry',    label:'Sinirli',   emoji:'😠', color:'#f87171' },
+  { id:'anxious',  label:'Endişeli',  emoji:'😰', color:'#a78bfa' },
+  { id:'calm',     label:'Sakin',     emoji:'😌', color:'#34d399' },
+  { id:'excited',  label:'Heyecanlı', emoji:'🤩', color:'#fb923c' },
+  { id:'love',     label:'Aşık',      emoji:'🥰', color:'#f472b6' },
+  { id:'bored',    label:'Sıkılmış',  emoji:'😑', color:'#94a3b8' },
+];
+const EMOJIS = ['😊','😢','😠','😰','😌','🤩','🥰','😑','😤','😭','🤗','😩','💪','🥲','😴','🫶'];
+const TR_BOUNDS = { latMin:-70, latMax:80, lngMin:-170, lngMax:170 };
+const COOLDOWN_MS = 60 * 60 * 1000;
+const EXPIRY_MS   = 60 * 60 * 1000;
+
+let selectedCat = null, selectedEmoji = null, sheetOpen = false;
+let leafletMarkers = {};
+
+function getLastShare() { try { return parseInt(localStorage.getItem("moodmap_last_share")||"0"); } catch(e){ return 0; } }
+function setLastShare() { try { localStorage.setItem("moodmap_last_share", Date.now()); } catch(e){} }
+function getRemainingCooldown() { const diff = COOLDOWN_MS - (Date.now() - getLastShare()); return diff > 0 ? diff : 0; }
+function formatTime(ms) { const m = Math.floor(ms/60000), s = Math.floor((ms%60000)/1000); return m > 0 ? m+" dakika "+s+" saniye" : s+" saniye"; }
+
+// Init Leaflet map
+const map = L.map('map', {
+  center: [20.0, 15.0],
+  zoom: 2,
+  zoomControl: true,
+  minZoom: 2,
+  maxZoom: 18,
+});
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '© OpenStreetMap',
+  maxZoom: 19,
+}).addTo(map);
+
+// Create custom marker icon
+function createMarkerIcon(mood) {
+  const cat = CATEGORIES.find(c => c.id === mood.cat_id);
+  const color = cat ? cat.color : '#ffffff';
+  const emoji = mood.emoji || cat?.emoji || '😶';
+  const text = mood.message ? `<span class="mood-text">${mood.message}</span>` : '';
+
+  const html = `
+    <div class="mood-marker">
+      <div class="mood-bubble">
+        <div class="mood-dot" style="background:${color}"></div>
+        <span class="mood-emoji">${emoji}</span>
+        ${text}
+      </div>
+      <div class="mood-tail"></div>
+      <div class="mood-pin"></div>
+    </div>`;
+
+  return L.divIcon({ html, className: '', iconAnchor: [0, 0], iconSize: null });
+}
+
+function addMarkerToMap(mood) {
+  if (leafletMarkers[mood.id]) return;
+  const icon = createMarkerIcon(mood);
+  const marker = L.marker([mood.lat, mood.lng], { icon }).addTo(map);
+  leafletMarkers[mood.id] = marker;
+}
+
+function removeOldMarkers(ids) {
+  Object.keys(leafletMarkers).forEach(id => {
+    if (!ids.includes(id)) {
+      map.removeLayer(leafletMarkers[id]);
+      delete leafletMarkers[id];
+    }
+  });
+}
+
+function updateStats(moods) {
+  document.getElementById('count-stat').textContent = moods.length;
+  if (moods.length > 0) {
+    const counts = {};
+    moods.forEach(m => { counts[m.cat_id] = (counts[m.cat_id]||0)+1; });
+    const top = Object.entries(counts).sort((a,b)=>b[1]-a[1])[0];
+    const cat = CATEGORIES.find(c => c.id === top[0]);
+    if (cat) document.getElementById('top-mood-pill').innerHTML = `${cat.emoji} En çok: ${cat.label}`;
+  }
+}
+
+async function loadMoods() {
+  const since = new Date(Date.now() - EXPIRY_MS).toISOString();
+  const { data, error } = await db.from('moods').select('*').gte('created_at', since).order('created_at', {ascending:false}).limit(100);
+  if (error) { console.error(error); return; }
+  const moods = data || [];
+  const ids = moods.map(m => m.id);
+  removeOldMarkers(ids);
+  moods.forEach(addMarkerToMap);
+  updateStats(moods);
+}
+
+function subscribeRealtime() {
+  db.channel('moods-realtime')
+    .on('postgres_changes', { event:'INSERT', schema:'public', table:'moods' }, payload => {
+      addMarkerToMap(payload.new);
+      const cat = CATEGORIES.find(c => c.id === payload.new.cat_id);
+      if (cat) showToast(`${cat.emoji} Yeni duygu paylaşıldı!`);
+      loadMoods();
+    })
+    .subscribe();
+}
+
+function buildCategories() {
+  const grid = document.getElementById('cat-grid');
+  CATEGORIES.forEach(cat => {
+    const btn = document.createElement('button'); btn.className='cat-btn'; btn.style.color=cat.color;
+    btn.innerHTML=`<span class="cat-emoji">${cat.emoji}</span><span class="cat-label">${cat.label}</span>`;
+    btn.onclick = () => { document.querySelectorAll('.cat-btn').forEach(b=>b.classList.remove('selected')); btn.classList.add('selected'); selectedCat=cat.id; };
+    grid.appendChild(btn);
+  });
+}
+
+function buildEmojis() {
+  const row = document.getElementById('emoji-row');
+  EMOJIS.forEach(e => {
+    const btn = document.createElement('button'); btn.className='emoji-pick'; btn.textContent=e;
+    btn.onclick = () => { document.querySelectorAll('.emoji-pick').forEach(b=>b.classList.remove('selected')); btn.classList.add('selected'); selectedEmoji=e; };
+    row.appendChild(btn);
+  });
+}
+
+function openSheet() {
+  sheetOpen=true;
+  document.getElementById('bottom-sheet').classList.add('open');
+  document.getElementById('overlay').classList.add('show');
+  document.getElementById('fab').classList.add('active');
+  document.getElementById('fab').textContent='✕';
+  map.dragging.disable();
+}
+function closeSheet() {
+  sheetOpen=false;
+  document.getElementById('bottom-sheet').classList.remove('open');
+  document.getElementById('overlay').classList.remove('show');
+  document.getElementById('fab').classList.remove('active');
+  document.getElementById('fab').textContent='＋';
+  map.dragging.enable();
+}
+function showToast(msg) {
+  const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2500);
+}
+
+document.getElementById('submit-btn').onclick = async () => {
+  if (!selectedCat) { showToast('⚠️ Bir kategori seç!'); return; }
+  const remaining = getRemainingCooldown();
+  if (remaining > 0) { showToast('⏳ ' + formatTime(remaining) + ' sonra tekrar paylaşabilirsin!'); return; }
+  const btn = document.getElementById('submit-btn');
+  btn.disabled=true; btn.textContent='Kaydediliyor...';
+
+  const doInsert = async (lat, lng) => {
+    const cat = CATEGORIES.find(c=>c.id===selectedCat);
+    const { error } = await db.from('moods').insert({
+      lat, lng, cat_id: selectedCat,
+      emoji: selectedEmoji || cat.emoji,
+      message: document.getElementById('mood-text').value.trim().slice(0,60) || null,
+    });
+    btn.disabled=false; btn.textContent='Paylaş 🚀';
+    if (error) { showToast('❌ Hata oluştu, tekrar dene'); console.error(error); return; }
+    setLastShare();
+    closeSheet();
+    showToast(`${cat.emoji} Duygun paylaşıldı! 1 saat sonra tekrar paylaşabilirsin.`);
+    selectedCat=null; selectedEmoji=null;
+    document.querySelectorAll('.cat-btn, .emoji-pick').forEach(b=>b.classList.remove('selected'));
+    document.getElementById('mood-text').value='';
+  };
+
+  navigator.geolocation.getCurrentPosition(
+    pos => doInsert(pos.coords.latitude, pos.coords.longitude),
+    () => {
+      const lat = TR_BOUNDS.latMin + Math.random()*(TR_BOUNDS.latMax-TR_BOUNDS.latMin);
+      const lng = TR_BOUNDS.lngMin + Math.random()*(TR_BOUNDS.lngMax-TR_BOUNDS.lngMin);
+      doInsert(lat, lng);
+    }
+  );
+};
+
+document.getElementById('fab').onclick = () => sheetOpen ? closeSheet() : openSheet();
+document.getElementById('overlay').onclick = closeSheet;
+
+buildCategories();
+buildEmojis();
+loadMoods();
+subscribeRealtime();
+// Her dakika eski markerları temizle
+setInterval(loadMoods, 60 * 1000);
+</script>
+</body>
+</html>

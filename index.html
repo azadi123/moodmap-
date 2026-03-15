@@ -23,16 +23,24 @@
   .live-dot { width:7px; height:7px; border-radius:50%; background:#34d399; animation:pulse 2s infinite; }
   @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(0.8)} }
 
-  #map { flex:1; z-index:1; }
+  /* NAV TABS */
+  #nav-tabs { display:flex; background:var(--bg); border-bottom:1px solid var(--border); flex-shrink:0; z-index:999; }
+  .nav-tab { flex:1; padding:10px; text-align:center; font-size:12px; font-weight:500; color:var(--muted); cursor:pointer; border-bottom:2px solid transparent; transition:all 0.2s; }
+  .nav-tab.active { color:var(--accent); border-bottom-color:var(--accent); }
 
-  /* Dark map tiles */
+  /* VIEWS */
+  #view-map { flex:1; position:relative; overflow:hidden; display:flex; flex-direction:column; }
+  #view-panel { flex:1; overflow-y:auto; padding:16px; display:none; }
+  #view-panel.active { display:block; }
+  #view-map.active { display:flex; }
+
+  #map { flex:1; z-index:1; }
   .leaflet-tile { filter: brightness(0.6) invert(1) contrast(3) hue-rotate(200deg) saturate(0.3) brightness(0.7); }
   .leaflet-container { background: #0d0d14; }
   .leaflet-control-zoom a { background: var(--surface) !important; color: var(--text) !important; border-color: var(--border) !important; }
   .leaflet-control-zoom a:hover { background: #1f1f2e !important; }
   .leaflet-control-attribution { display: none; }
 
-  /* Custom marker */
   .mood-marker { display:flex; flex-direction:column; align-items:center; cursor:pointer; }
   .mood-bubble { background:rgba(19,19,26,0.92); border:1px solid rgba(255,255,255,0.1); border-radius:20px; padding:5px 9px; display:flex; align-items:center; gap:4px; box-shadow:0 4px 16px rgba(0,0,0,0.5); white-space:nowrap; max-width:130px; backdrop-filter:blur(8px); transition:transform 0.15s; }
   .mood-bubble:hover { transform:scale(1.05); }
@@ -42,12 +50,42 @@
   .mood-tail { width:2px; height:6px; background:rgba(255,255,255,0.15); border-radius:2px; margin:0 auto; }
   .mood-pin { width:4px; height:4px; border-radius:50%; background:rgba(255,255,255,0.15); margin:0 auto; }
 
-  /* Stats */
-  #stats-bar { position:absolute; top:70px; left:12px; right:12px; display:flex; gap:8px; z-index:500; pointer-events:none; flex-wrap:wrap; }
+  #stats-bar { position:absolute; top:8px; left:12px; right:12px; display:flex; gap:8px; z-index:500; pointer-events:none; flex-wrap:wrap; }
   .stat-pill { background:rgba(10,10,15,0.88); backdrop-filter:blur(10px); border:1px solid var(--border); border-radius:20px; padding:6px 12px; font-size:11px; color:var(--muted); font-weight:500; display:flex; align-items:center; gap:5px; }
   .stat-pill strong { color:var(--text); font-weight:600; }
 
-  /* Bottom sheet */
+  /* NEARBY NOTIFICATION */
+  #nearby-notif { position:absolute; bottom:100px; left:12px; right:12px; background:rgba(19,19,26,0.96); border:1px solid var(--accent); border-radius:20px; padding:12px 16px; z-index:1200; display:none; backdrop-filter:blur(12px); box-shadow:0 8px 32px rgba(192,132,252,0.2); animation:slideUp 0.4s cubic-bezier(0.34,1.56,0.64,1); }
+  @keyframes slideUp { from{transform:translateY(20px);opacity:0} to{transform:translateY(0);opacity:1} }
+  #nearby-notif.show { display:flex; align-items:center; gap:10px; }
+  .notif-emoji { font-size:24px; }
+  .notif-text { flex:1; font-size:13px; line-height:1.4; }
+  .notif-text strong { color:var(--accent); }
+  .notif-close { font-size:18px; color:var(--muted); cursor:pointer; padding:4px; }
+
+  /* PANEL */
+  .panel-title { font-family:'Syne',sans-serif; font-size:18px; font-weight:700; margin-bottom:4px; }
+  .panel-sub { font-size:13px; color:var(--muted); margin-bottom:20px; }
+
+  .search-box { width:100%; background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:12px 16px; color:var(--text); font-family:'DM Sans',sans-serif; font-size:14px; outline:none; margin-bottom:16px; transition:border-color 0.2s; }
+  .search-box:focus { border-color:var(--accent); }
+  .search-box::placeholder { color:var(--muted); }
+
+  .city-card { background:var(--surface); border:1px solid var(--border); border-radius:18px; padding:16px; margin-bottom:12px; }
+  .city-name { font-family:'Syne',sans-serif; font-size:15px; font-weight:700; margin-bottom:4px; }
+  .city-count { font-size:11px; color:var(--muted); margin-bottom:12px; }
+  .mood-bars { display:flex; flex-direction:column; gap:6px; }
+  .mood-bar-row { display:flex; align-items:center; gap:8px; }
+  .mood-bar-label { font-size:11px; width:70px; display:flex; align-items:center; gap:4px; color:var(--text); }
+  .mood-bar-track { flex:1; height:6px; background:rgba(255,255,255,0.06); border-radius:3px; overflow:hidden; }
+  .mood-bar-fill { height:100%; border-radius:3px; transition:width 0.6s cubic-bezier(0.34,1.56,0.64,1); }
+  .mood-bar-pct { font-size:11px; color:var(--muted); width:32px; text-align:right; }
+
+  .dominant-badge { display:inline-flex; align-items:center; gap:4px; padding:4px 10px; border-radius:20px; font-size:11px; font-weight:600; margin-top:10px; }
+
+  .no-data { text-align:center; padding:40px 20px; color:var(--muted); font-size:13px; }
+
+  /* BOTTOM SHEET */
   #bottom-sheet { position:absolute; bottom:0; left:0; right:0; background:var(--surface); border-radius:24px 24px 0 0; border-top:1px solid var(--border); padding:0 20px 32px; z-index:2000; transform:translateY(100%); transition:transform 0.4s cubic-bezier(0.32,0.72,0,1); max-height:80dvh; overflow-y:auto; }
   #bottom-sheet.open { transform:translateY(0); }
   .sheet-handle { width:36px; height:4px; background:var(--border); border-radius:2px; margin:12px auto 20px; }
@@ -77,7 +115,7 @@
   #fab:hover { transform:scale(1.08); }
   #fab.active { transform:rotate(45deg); background:#ef4444; box-shadow:0 8px 32px rgba(239,68,68,0.4); }
 
-  #toast { position:absolute; top:80px; left:50%; transform:translateX(-50%) translateY(-20px); background:var(--surface); border:1px solid var(--border); border-radius:20px; padding:10px 18px; font-size:13px; font-weight:500; opacity:0; transition:all 0.3s; z-index:3000; white-space:nowrap; pointer-events:none; }
+  #toast { position:absolute; top:60px; left:50%; transform:translateX(-50%) translateY(-20px); background:var(--surface); border:1px solid var(--border); border-radius:20px; padding:10px 18px; font-size:13px; font-weight:500; opacity:0; transition:all 0.3s; z-index:3000; white-space:nowrap; pointer-events:none; }
   #toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
 
   #overlay { position:absolute; inset:0; background:rgba(0,0,0,0.5); z-index:1500; opacity:0; pointer-events:none; transition:opacity 0.3s; }
@@ -85,6 +123,8 @@
 
   #bottom-sheet::-webkit-scrollbar { width:3px; }
   #bottom-sheet::-webkit-scrollbar-thumb { background:var(--border); border-radius:2px; }
+  #view-panel::-webkit-scrollbar { width:3px; }
+  #view-panel::-webkit-scrollbar-thumb { background:var(--border); border-radius:2px; }
 </style>
 </head>
 <body>
@@ -94,14 +134,34 @@
   <div class="live-badge"><div class="live-dot"></div> Canlı</div>
 </header>
 
-<div id="map"></div>
-
-<div id="stats-bar">
-  <div class="stat-pill">🌍 <strong id="count-stat">0</strong> kişi paylaştı</div>
-  <div class="stat-pill" id="top-mood-pill">🏆 En çok: —</div>
+<div id="nav-tabs">
+  <div class="nav-tab active" data-view="map">🗺️ Harita</div>
+  <div class="nav-tab" data-view="panel">📊 Bölge Paneli</div>
 </div>
 
-<button id="fab">＋</button>
+<!-- MAP VIEW -->
+<div id="view-map" class="active">
+  <div id="map"></div>
+  <div id="stats-bar">
+    <div class="stat-pill">🌍 <strong id="count-stat">0</strong> kişi</div>
+    <div class="stat-pill" id="top-mood-pill">🏆 —</div>
+  </div>
+  <div id="nearby-notif">
+    <span class="notif-emoji" id="notif-emoji">😊</span>
+    <div class="notif-text" id="notif-text"></div>
+    <span class="notif-close" onclick="document.getElementById('nearby-notif').classList.remove('show')">✕</span>
+  </div>
+  <button id="fab">＋</button>
+</div>
+
+<!-- PANEL VIEW -->
+<div id="view-panel">
+  <div class="panel-title">Bölge Duygu Paneli</div>
+  <div class="panel-sub">Şehir, köy veya kasabaların anlık duygu dağılımı</div>
+  <input class="search-box" id="search-box" placeholder="🔍 Şehir veya bölge ara..." oninput="filterCities()">
+  <div id="city-list"></div>
+</div>
+
 <div id="toast"></div>
 <div id="overlay"></div>
 
@@ -134,66 +194,60 @@ const CATEGORIES = [
   { id:'bored',    label:'Sıkılmış',  emoji:'😑', color:'#94a3b8' },
 ];
 const EMOJIS = ['😊','😢','😠','😰','😌','🤩','🥰','😑','😤','😭','🤗','😩','💪','🥲','😴','🫶'];
-const TR_BOUNDS = { latMin:-70, latMax:80, lngMin:-170, lngMax:170 };
+const WORLD_BOUNDS = { latMin:-70, latMax:80, lngMin:-170, lngMax:170 };
 const COOLDOWN_MS = 60 * 60 * 1000;
 const EXPIRY_MS   = 60 * 60 * 1000;
+const NEARBY_KM   = 50; // yakın mesafe km
 
 let selectedCat = null, selectedEmoji = null, sheetOpen = false;
 let leafletMarkers = {};
+let allMoods = [];
+let cityData = {};
 
-function getLastShare() { try { return parseInt(localStorage.getItem("moodmap_last_share")||"0"); } catch(e){ return 0; } }
-function setLastShare() { try { localStorage.setItem("moodmap_last_share", Date.now()); } catch(e){} }
-function getRemainingCooldown() { const diff = COOLDOWN_MS - (Date.now() - getLastShare()); return diff > 0 ? diff : 0; }
-function formatTime(ms) { const m = Math.floor(ms/60000), s = Math.floor((ms%60000)/1000); return m > 0 ? m+" dakika "+s+" saniye" : s+" saniye"; }
+// Cooldown
+function getLastShare() { try { return parseInt(localStorage.getItem('moodmap_last_share')||'0'); } catch(e){ return 0; } }
+function setLastShare() { try { localStorage.setItem('moodmap_last_share', Date.now()); } catch(e){} }
+function getRemainingCooldown() { const d = COOLDOWN_MS-(Date.now()-getLastShare()); return d>0?d:0; }
+function formatTime(ms) { const m=Math.floor(ms/60000),s=Math.floor((ms%60000)/1000); return m>0?`${m} dk ${s} sn`:`${s} saniye`; }
 
-// Init Leaflet map
-const map = L.map('map', {
-  center: [20.0, 15.0],
-  zoom: 2,
-  zoomControl: true,
-  minZoom: 2,
-  maxZoom: 18,
-});
+// Haversine distance (km)
+function getDistance(lat1,lng1,lat2,lng2) {
+  const R=6371, dLat=(lat2-lat1)*Math.PI/180, dLng=(lng2-lng1)*Math.PI/180;
+  const a=Math.sin(dLat/2)**2+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2;
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
 
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  attribution: '© OpenStreetMap',
-  maxZoom: 19,
-}).addTo(map);
+// Reverse geocode — bölge adı al
+async function getLocationName(lat, lng) {
+  try {
+    const r = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=tr`);
+    const d = await r.json();
+    return d.address?.city || d.address?.town || d.address?.village || d.address?.county || d.address?.state || 'Bilinmeyen';
+  } catch(e) { return 'Bilinmeyen'; }
+}
 
-// Create custom marker icon
+// Leaflet map
+const map = L.map('map', { center:[20.0,15.0], zoom:2, zoomControl:true, minZoom:2, maxZoom:18 });
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom:19 }).addTo(map);
+
 function createMarkerIcon(mood) {
-  const cat = CATEGORIES.find(c => c.id === mood.cat_id);
-  const color = cat ? cat.color : '#ffffff';
-  const emoji = mood.emoji || cat?.emoji || '😶';
-  const text = mood.message ? `<span class="mood-text">${mood.message}</span>` : '';
-
-  const html = `
-    <div class="mood-marker">
-      <div class="mood-bubble">
-        <div class="mood-dot" style="background:${color}"></div>
-        <span class="mood-emoji">${emoji}</span>
-        ${text}
-      </div>
-      <div class="mood-tail"></div>
-      <div class="mood-pin"></div>
-    </div>`;
-
-  return L.divIcon({ html, className: '', iconAnchor: [0, 0], iconSize: null });
+  const cat = CATEGORIES.find(c=>c.id===mood.cat_id);
+  const color = cat?cat.color:'#ffffff';
+  const emoji = mood.emoji||cat?.emoji||'😶';
+  const text = mood.message?`<span class="mood-text">${mood.message}</span>`:'';
+  const html = `<div class="mood-marker"><div class="mood-bubble"><div class="mood-dot" style="background:${color}"></div><span class="mood-emoji">${emoji}</span>${text}</div><div class="mood-tail"></div><div class="mood-pin"></div></div>`;
+  return L.divIcon({ html, className:'', iconAnchor:[0,0], iconSize:null });
 }
 
 function addMarkerToMap(mood) {
   if (leafletMarkers[mood.id]) return;
-  const icon = createMarkerIcon(mood);
-  const marker = L.marker([mood.lat, mood.lng], { icon }).addTo(map);
+  const marker = L.marker([mood.lat, mood.lng], { icon:createMarkerIcon(mood) }).addTo(map);
   leafletMarkers[mood.id] = marker;
 }
 
 function removeOldMarkers(ids) {
   Object.keys(leafletMarkers).forEach(id => {
-    if (!ids.includes(id)) {
-      map.removeLayer(leafletMarkers[id]);
-      delete leafletMarkers[id];
-    }
+    if (!ids.includes(id)) { map.removeLayer(leafletMarkers[id]); delete leafletMarkers[id]; }
   });
 }
 
@@ -201,41 +255,128 @@ function updateStats(moods) {
   document.getElementById('count-stat').textContent = moods.length;
   if (moods.length > 0) {
     const counts = {};
-    moods.forEach(m => { counts[m.cat_id] = (counts[m.cat_id]||0)+1; });
+    moods.forEach(m=>{ counts[m.cat_id]=(counts[m.cat_id]||0)+1; });
     const top = Object.entries(counts).sort((a,b)=>b[1]-a[1])[0];
-    const cat = CATEGORIES.find(c => c.id === top[0]);
-    if (cat) document.getElementById('top-mood-pill').innerHTML = `${cat.emoji} En çok: ${cat.label}`;
+    const cat = CATEGORIES.find(c=>c.id===top[0]);
+    if (cat) document.getElementById('top-mood-pill').innerHTML = `${cat.emoji} ${cat.label}`;
   }
 }
 
 async function loadMoods() {
-  const since = new Date(Date.now() - EXPIRY_MS).toISOString();
-  const { data, error } = await db.from('moods').select('*').gte('created_at', since).order('created_at', {ascending:false}).limit(100);
+  const since = new Date(Date.now()-EXPIRY_MS).toISOString();
+  const { data, error } = await db.from('moods').select('*').gte('created_at',since).order('created_at',{ascending:false}).limit(200);
   if (error) { console.error(error); return; }
-  const moods = data || [];
-  const ids = moods.map(m => m.id);
+  allMoods = data || [];
+  const ids = allMoods.map(m=>m.id);
   removeOldMarkers(ids);
-  moods.forEach(addMarkerToMap);
-  updateStats(moods);
+  allMoods.forEach(addMarkerToMap);
+  updateStats(allMoods);
+  buildCityData(allMoods);
 }
 
+// ── BÖLGE PANELİ ─────────────────────────────────────────
+async function buildCityData(moods) {
+  cityData = {};
+  for (const m of moods) {
+    if (!m.city_name) {
+      // city_name yoksa reverse geocode yap ve cache et
+      if (!m._cityResolved) {
+        m._cityResolved = true;
+        m.city_name = await getLocationName(m.lat, m.lng);
+      }
+    }
+    const city = m.city_name || 'Bilinmeyen';
+    if (!cityData[city]) cityData[city] = { name:city, moods:{} };
+    cityData[city].moods[m.cat_id] = (cityData[city].moods[m.cat_id]||0)+1;
+  }
+  renderCityPanel();
+}
+
+function renderCityPanel(filter='') {
+  const list = document.getElementById('city-list');
+  const cities = Object.values(cityData)
+    .filter(c => c.name.toLowerCase().includes(filter.toLowerCase()))
+    .sort((a,b) => Object.values(b.moods).reduce((s,v)=>s+v,0) - Object.values(a.moods).reduce((s,v)=>s+v,0));
+
+  if (cities.length === 0) {
+    list.innerHTML = `<div class="no-data">Henüz bu bölgede duygu paylaşılmamış 🌍<br><small>Harita sekmesinden ilk paylaşımı yap!</small></div>`;
+    return;
+  }
+
+  list.innerHTML = cities.map(city => {
+    const total = Object.values(city.moods).reduce((s,v)=>s+v,0);
+    const sorted = Object.entries(city.moods).sort((a,b)=>b[1]-a[1]);
+    const dominant = CATEGORIES.find(c=>c.id===sorted[0]?.[0]);
+
+    const bars = CATEGORIES.map(cat => {
+      const count = city.moods[cat.id]||0;
+      const pct = total > 0 ? Math.round(count/total*100) : 0;
+      if (count === 0) return '';
+      return `<div class="mood-bar-row">
+        <div class="mood-bar-label">${cat.emoji} ${cat.label}</div>
+        <div class="mood-bar-track"><div class="mood-bar-fill" style="width:${pct}%;background:${cat.color}"></div></div>
+        <div class="mood-bar-pct">${pct}%</div>
+      </div>`;
+    }).join('');
+
+    return `<div class="city-card">
+      <div class="city-name">📍 ${city.name}</div>
+      <div class="city-count">${total} paylaşım • son 1 saat</div>
+      <div class="mood-bars">${bars}</div>
+      ${dominant ? `<div class="dominant-badge" style="background:color-mix(in srgb,${dominant.color} 15%,transparent);color:${dominant.color}">${dominant.emoji} Baskın duygu: ${dominant.label}</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function filterCities() {
+  renderCityPanel(document.getElementById('search-box').value);
+}
+
+// ── YAKINDA AYNI DUYGU BİLDİRİMİ ─────────────────────────
+function checkNearby(userLat, userLng, catId) {
+  const cat = CATEGORIES.find(c=>c.id===catId);
+  if (!cat) return;
+  const since = Date.now() - EXPIRY_MS;
+  const nearby = allMoods.filter(m => {
+    if (m.cat_id !== catId) return false;
+    const age = new Date(m.created_at).getTime();
+    if (age < since) return false;
+    const dist = getDistance(userLat, userLng, m.lat, m.lng);
+    return dist <= NEARBY_KM;
+  });
+
+  if (nearby.length > 0) {
+    const notif = document.getElementById('nearby-notif');
+    document.getElementById('notif-emoji').textContent = cat.emoji;
+    document.getElementById('notif-text').innerHTML =
+      `Yakınında <strong>${nearby.length} kişi</strong> de <strong>${cat.label}</strong> hissediyor! Yalnız değilsin 💙`;
+    notif.classList.add('show');
+    setTimeout(() => notif.classList.remove('show'), 6000);
+  }
+}
+
+// ── REALTIME ──────────────────────────────────────────────
 function subscribeRealtime() {
   db.channel('moods-realtime')
     .on('postgres_changes', { event:'INSERT', schema:'public', table:'moods' }, payload => {
+      allMoods.unshift(payload.new);
+      if (allMoods.length > 200) allMoods.pop();
       addMarkerToMap(payload.new);
-      const cat = CATEGORIES.find(c => c.id === payload.new.cat_id);
+      updateStats(allMoods);
+      buildCityData(allMoods);
+      const cat = CATEGORIES.find(c=>c.id===payload.new.cat_id);
       if (cat) showToast(`${cat.emoji} Yeni duygu paylaşıldı!`);
-      loadMoods();
     })
     .subscribe();
 }
 
+// ── UI ────────────────────────────────────────────────────
 function buildCategories() {
   const grid = document.getElementById('cat-grid');
   CATEGORIES.forEach(cat => {
     const btn = document.createElement('button'); btn.className='cat-btn'; btn.style.color=cat.color;
     btn.innerHTML=`<span class="cat-emoji">${cat.emoji}</span><span class="cat-label">${cat.label}</span>`;
-    btn.onclick = () => { document.querySelectorAll('.cat-btn').forEach(b=>b.classList.remove('selected')); btn.classList.add('selected'); selectedCat=cat.id; };
+    btn.onclick=()=>{ document.querySelectorAll('.cat-btn').forEach(b=>b.classList.remove('selected')); btn.classList.add('selected'); selectedCat=cat.id; };
     grid.appendChild(btn);
   });
 }
@@ -244,10 +385,22 @@ function buildEmojis() {
   const row = document.getElementById('emoji-row');
   EMOJIS.forEach(e => {
     const btn = document.createElement('button'); btn.className='emoji-pick'; btn.textContent=e;
-    btn.onclick = () => { document.querySelectorAll('.emoji-pick').forEach(b=>b.classList.remove('selected')); btn.classList.add('selected'); selectedEmoji=e; };
+    btn.onclick=()=>{ document.querySelectorAll('.emoji-pick').forEach(b=>b.classList.remove('selected')); btn.classList.add('selected'); selectedEmoji=e; };
     row.appendChild(btn);
   });
 }
+
+// NAV TABS
+document.querySelectorAll('.nav-tab').forEach(tab => {
+  tab.onclick = () => {
+    document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+    tab.classList.add('active');
+    const view = tab.dataset.view;
+    document.getElementById('view-map').classList.toggle('active', view==='map');
+    document.getElementById('view-panel').classList.toggle('active', view==='panel');
+    if (view==='panel') renderCityPanel(document.getElementById('search-box').value);
+  };
+});
 
 function openSheet() {
   sheetOpen=true;
@@ -273,22 +426,26 @@ function showToast(msg) {
 document.getElementById('submit-btn').onclick = async () => {
   if (!selectedCat) { showToast('⚠️ Bir kategori seç!'); return; }
   const remaining = getRemainingCooldown();
-  if (remaining > 0) { showToast('⏳ ' + formatTime(remaining) + ' sonra tekrar paylaşabilirsin!'); return; }
+  if (remaining > 0) { showToast(`⏳ ${formatTime(remaining)} sonra paylaşabilirsin!`); return; }
   const btn = document.getElementById('submit-btn');
   btn.disabled=true; btn.textContent='Kaydediliyor...';
 
   const doInsert = async (lat, lng) => {
     const cat = CATEGORIES.find(c=>c.id===selectedCat);
+    const cityName = await getLocationName(lat, lng);
     const { error } = await db.from('moods').insert({
-      lat, lng, cat_id: selectedCat,
-      emoji: selectedEmoji || cat.emoji,
-      message: document.getElementById('mood-text').value.trim().slice(0,60) || null,
+      lat, lng, cat_id:selectedCat,
+      emoji: selectedEmoji||cat.emoji,
+      message: document.getElementById('mood-text').value.trim().slice(0,60)||null,
+      city_name: cityName,
     });
     btn.disabled=false; btn.textContent='Paylaş 🚀';
     if (error) { showToast('❌ Hata oluştu, tekrar dene'); console.error(error); return; }
     setLastShare();
     closeSheet();
-    showToast(`${cat.emoji} Duygun paylaşıldı! 1 saat sonra tekrar paylaşabilirsin.`);
+    showToast(`${cat.emoji} Duygun paylaşıldı!`);
+    // Yakında aynı duygu kontrolü
+    checkNearby(lat, lng, selectedCat);
     selectedCat=null; selectedEmoji=null;
     document.querySelectorAll('.cat-btn, .emoji-pick').forEach(b=>b.classList.remove('selected'));
     document.getElementById('mood-text').value='';
@@ -297,8 +454,8 @@ document.getElementById('submit-btn').onclick = async () => {
   navigator.geolocation.getCurrentPosition(
     pos => doInsert(pos.coords.latitude, pos.coords.longitude),
     () => {
-      const lat = TR_BOUNDS.latMin + Math.random()*(TR_BOUNDS.latMax-TR_BOUNDS.latMin);
-      const lng = TR_BOUNDS.lngMin + Math.random()*(TR_BOUNDS.lngMax-TR_BOUNDS.lngMin);
+      const lat = WORLD_BOUNDS.latMin+Math.random()*(WORLD_BOUNDS.latMax-WORLD_BOUNDS.latMin);
+      const lng = WORLD_BOUNDS.lngMin+Math.random()*(WORLD_BOUNDS.lngMax-WORLD_BOUNDS.lngMin);
       doInsert(lat, lng);
     }
   );
@@ -311,8 +468,7 @@ buildCategories();
 buildEmojis();
 loadMoods();
 subscribeRealtime();
-// Her dakika eski markerları temizle
-setInterval(loadMoods, 60 * 1000);
+setInterval(loadMoods, 60*1000);
 </script>
 </body>
 </html>

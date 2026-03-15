@@ -221,20 +221,28 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).a
 function drawHeatmap(moods) {
   heatCircles.forEach(c=>map.removeLayer(c));
   heatCircles=[];
+  const zoom = map.getZoom();
+  // Zoom seviyesine göre boyut ve opaklık ayarla
+  const radius = zoom < 6 ? 15000 : zoom < 10 ? 3000 : zoom < 13 ? 600 : 120;
+  const opacity = zoom < 6 ? 0.12 : zoom < 10 ? 0.15 : zoom < 13 ? 0.2 : 0.28;
   moods.forEach(m=>{
     const cat=CATEGORIES.find(c=>c.id===m.cat_id);
     if(!cat) return;
     const {r,g,b}=hexToRgb(cat.color);
     const circle=L.circle([m.lat,m.lng],{
-      radius: 800,
-      color: 'transparent',
+      radius,
+      color: `rgba(${r},${g},${b},0.6)`,
+      weight: 1,
       fillColor: `rgb(${r},${g},${b})`,
-      fillOpacity: 0.18,
+      fillOpacity: opacity,
       interactive: false,
     }).addTo(map);
     heatCircles.push(circle);
   });
 }
+
+// Zoom değişince heatmap yeniden çiz
+map.on('zoomend', () => drawHeatmap(allMoods));
 
 // ── MARKERS ───────────────────────────────────────────────
 function createMarkerIcon(mood) {

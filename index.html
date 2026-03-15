@@ -117,6 +117,12 @@
   #bottom-sheet::-webkit-scrollbar { width:3px; }
   #bottom-sheet::-webkit-scrollbar-thumb { background:var(--border); border-radius:2px; }
 </style>
+<link rel="manifest" href="/manifest.json">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="MoodMap">
+<meta name="theme-color" content="#c084fc">
 </head>
 <body>
 
@@ -482,6 +488,11 @@ buildEmojis();
 loadMoods();
 subscribeRealtime();
 setInterval(loadMoods,60*1000);
+</script>
+<script>
+if('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js');
+}
 </script>
 </body>
 </html>

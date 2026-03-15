@@ -275,8 +275,8 @@ map.on('click',async function(e) {
   const {lat,lng}=e.latlng;
   const zoom=map.getZoom();
 
-  // Zoom'a göre yarıçap: uzakta ülke (300km), yakında şehir (10km)
-  const RADIUS = zoom<5 ? 500 : zoom<8 ? 150 : zoom<11 ? 40 : 10;
+  // Zoom'a göre yarıçap
+  const RADIUS = zoom<4 ? 2000 : zoom<6 ? 800 : zoom<8 ? 300 : zoom<11 ? 80 : zoom<13 ? 25 : 10;
   const nearby=allMoods.filter(m=>getDistance(lat,lng,m.lat,m.lng)<=RADIUS);
   if(nearby.length===0) return;
 

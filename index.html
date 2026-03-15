@@ -191,7 +191,7 @@ const EXPIRY_MS = 60 * 60 * 1000;
 const NEARBY_KM = 50;
 
 let selectedCat=null, selectedEmoji=null, sheetOpen=false, regionOpen=false;
-let leafletMarkers={}, allMoods=[], heatCircles=[];
+let leafletMarkers={}, allMoods=[];
 
 // ── UTILS ─────────────────────────────────────────────────
 function getDistance(lat1,lng1,lat2,lng2) {
@@ -218,31 +218,60 @@ const map = L.map('map',{center:[20,15],zoom:2,zoomControl:true,minZoom:2,maxZoo
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(map);
 
 // ── HEATMAP CIRCLES ON MAP ────────────────────────────────
-function drawHeatmap(moods) {
-  heatCircles.forEach(c=>map.removeLayer(c));
-  heatCircles=[];
-  const zoom = map.getZoom();
-  // Zoom seviyesine göre boyut ve opaklık ayarla
-  const radius = zoom < 6 ? 15000 : zoom < 10 ? 3000 : zoom < 13 ? 600 : 120;
-  const opacity = zoom < 6 ? 0.12 : zoom < 10 ? 0.15 : zoom < 13 ? 0.2 : 0.28;
-  moods.forEach(m=>{
-    const cat=CATEGORIES.find(c=>c.id===m.cat_id);
-    if(!cat) return;
-    const {r,g,b}=hexToRgb(cat.color);
-    const circle=L.circle([m.lat,m.lng],{
-      radius,
-      color: `rgba(${r},${g},${b},0.6)`,
-      weight: 1,
-      fillColor: `rgb(${r},${g},${b})`,
-      fillOpacity: opacity,
-      interactive: false,
-    }).addTo(map);
-    heatCircles.push(circle);
-  });
-}
+// Canvas heatmap layer
+const HeatLayer = L.Layer.extend({
+  onAdd(map) {
+    this._map = map;
+    this._canvas = L.DomUtil.create('canvas','leaflet-heat-canvas');
+    const size = map.getSize();
+    this._canvas.width = size.x;
+    this._canvas.height = size.y;
+    Object.assign(this._canvas.style, {
+      position:'absolute', top:0, left:0,
+      pointerEvents:'none', zIndex:200, opacity:0.55
+    });
+    map.getPanes().overlayPane.appendChild(this._canvas);
+    map.on('moveend zoomend', this._redraw, this);
+    this._moods = [];
+  },
+  onRemove(map) {
+    map.getPanes().overlayPane.removeChild(this._canvas);
+    map.off('moveend zoomend', this._redraw, this);
+  },
+  setMoods(moods) { this._moods = moods; this._redraw(); },
+  _redraw() {
+    if(!this._map||!this._canvas) return;
+    const map = this._map;
+    const size = map.getSize();
+    this._canvas.width = size.x;
+    this._canvas.height = size.y;
+    const ctx = this._canvas.getContext('2d');
+    ctx.clearRect(0,0,size.x,size.y);
+    const zoom = map.getZoom();
+    const r = zoom<4?120 : zoom<7?80 : zoom<10?60 : zoom<13?45 : zoom<15?30 : 18;
+    (this._moods||[]).forEach(m=>{
+      const cat = CATEGORIES.find(c=>c.id===m.cat_id);
+      if(!cat) return;
+      const pt = map.latLngToContainerPoint([m.lat,m.lng]);
+      const {r:cr,g:cg,b:cb} = hexToRgb(cat.color);
+      const grad = ctx.createRadialGradient(pt.x,pt.y,0,pt.x,pt.y,r);
+      grad.addColorStop(0,   `rgba(${cr},${cg},${cb},0.55)`);
+      grad.addColorStop(0.3, `rgba(${cr},${cg},${cb},0.3)`);
+      grad.addColorStop(0.7, `rgba(${cr},${cg},${cb},0.08)`);
+      grad.addColorStop(1,   `rgba(${cr},${cg},${cb},0)`);
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(pt.x,pt.y,r,0,Math.PI*2);
+      ctx.fill();
+    });
+  }
+});
+const heatLayer = new HeatLayer();
+heatLayer.addTo(map);
 
-// Zoom değişince heatmap yeniden çiz
-map.on('zoomend', () => drawHeatmap(allMoods));
+function drawHeatmap(moods) {
+  heatLayer.setMoods(moods);
+}
 
 // ── MARKERS ───────────────────────────────────────────────
 function createMarkerIcon(mood) {

@@ -258,7 +258,7 @@ map.on('click',async function(e) {
   if(regionOpen) { closeRegionPanel(); return; }
 
   const {lat,lng}=e.latlng;
-  const RADIUS=80; // km — tıklanan noktanın çevresindeki duygular
+  const RADIUS=10; // km — tıklanan noktanın çevresindeki duygular
   const nearby=allMoods.filter(m=>getDistance(lat,lng,m.lat,m.lng)<=RADIUS);
   if(nearby.length===0) return;
 

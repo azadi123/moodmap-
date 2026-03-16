@@ -912,22 +912,22 @@ function startActiveChat(matchId, role) {
   updateTimer(endTime);
   chatTimerInterval = setInterval(() => updateTimer(endTime), 1000);
 
-  // Subscribe to match status changes (both sides)
-  if(matchSubscription) matchSubscription.unsubscribe();
-  matchSubscription = db.channel('match-active-'+matchId)
-    .on('postgres_changes', {event:'UPDATE', schema:'public', table:'matches', filter:`id=eq.${matchId}`}, payload => {
-      const m = payload.new;
-      if(m.status === 'ended' || m.status === 'cancelled') {
-        clearInterval(chatTimerInterval);
-        if(msgSubscription) { msgSubscription.unsubscribe(); msgSubscription = null; }
-        chatState = 'none';
-        currentMatchId = null;
-        currentMatch = null;
-        sendNotif('MoodMap', '👋 Karşı taraf sohbeti sonlandırdı', 'match');
-        openChatPanel();
-      }
-    })
-    .subscribe();
+  // Poll match status every 3 seconds to detect if other side ended chat
+  if(matchSubscription) clearInterval(matchSubscription);
+  matchSubscription = setInterval(async () => {
+    if(!currentMatchId) { clearInterval(matchSubscription); return; }
+    const {data} = await db.from('matches').select('status').eq('id', currentMatchId).single();
+    if(data && (data.status === 'ended' || data.status === 'cancelled')) {
+      clearInterval(matchSubscription);
+      clearInterval(chatTimerInterval);
+      if(msgSubscription) { msgSubscription.unsubscribe(); msgSubscription = null; }
+      chatState = 'none';
+      currentMatchId = null;
+      currentMatch = null;
+      sendNotif('MoodMap', '👋 Karşı taraf sohbeti sonlandırdı', 'match');
+      openChatPanel();
+    }
+  }, 3000);
 
   // Subscribe to messages
   if(msgSubscription) msgSubscription.unsubscribe();
@@ -966,7 +966,7 @@ function endChat(manual=false) {
   chatState = 'none';
   currentMatchId = null;
   currentMatch = null;
-  if(matchSubscription) { matchSubscription.unsubscribe(); matchSubscription = null; }
+  if(matchSubscription) { clearInterval(matchSubscription); matchSubscription = null; }
   if(msgSubscription) { msgSubscription.unsubscribe(); msgSubscription = null; }
   // Show find new match option
   openChatPanel();

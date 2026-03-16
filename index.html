@@ -129,14 +129,14 @@
 <header>
   <div class="logo"></div>
   <div id="world-score" style="font-size:11px;color:var(--muted);font-weight:500;text-align:right;line-height:1.3">🌍 —</div>
-  <div class="live-badge"><div class="live-dot"></div> Canlı</div>
+  <div class="live-badge"><div class="live-dot"></div> <span id="live-text">Canlı</span></div>
 </header>
 
 <div id="map-wrap">
   <div id="map"></div>
 
   <div id="stats-bar">
-    <div class="stat-pill">🌍 <strong id="count-stat">0</strong> kişi</div>
+    <div class="stat-pill">🌍 <strong id="count-stat">0</strong> <span id="people-text">kişi</span></div>
     <div class="stat-pill" id="top-mood-pill">🏆 —</div>
   </div>
 
@@ -167,13 +167,13 @@
 
 <div id="bottom-sheet">
   <div class="sheet-handle"></div>
-  <div class="sheet-title">Şu an nasıl hissediyorsun?</div>
-  <div class="sheet-sub">Anonim olarak paylaşılacak.</div>
-  <div class="msg-label">Kategori seç</div>
+  <div class="sheet-title" id="sheet-title">Şu an nasıl hissediyorsun?</div>
+  <div class="sheet-sub" id="sheet-sub">Anonim olarak paylaşılacak.</div>
+  <div class="msg-label" id="cat-label">Kategori seç</div>
   <div class="category-grid" id="cat-grid"></div>
-  <div class="msg-label">Emoji seç</div>
+  <div class="msg-label" id="emoji-label">Emoji seç</div>
   <div class="emoji-row" id="emoji-row"></div>
-  <div class="msg-label">Ne hissediyorsun? (isteğe bağlı)</div>
+  <div class="msg-label" id="feel-label">Ne hissediyorsun?</div>
   <textarea class="msg-input" id="mood-text" placeholder="Bir şeyler yaz..." maxlength="60"></textarea>
   <button class="submit-btn" id="submit-btn">Paylaş 🚀</button>
 </div>
@@ -182,6 +182,95 @@
 const SUPABASE_URL = 'https://minmpdxaeeamctkhqlhb.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1pbm1wZHhhZWVhbWN0a2hxbGhiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyMzkxMjAsImV4cCI6MjA4ODgxNTEyMH0.b7vhmOO8Xpm5NtPkq3HrWWNWlWEbtIPtkDTBW9h4TIc';
 const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// ── TRANSLATIONS ─────────────────────────────────────────
+const TRANSLATIONS = {
+  tr: {
+    live: 'Canlı', people: 'kişi', howFeel: 'Şu an nasıl hissediyorsun?',
+    anonymous: 'Anonim olarak paylaşılacak.', selectCat: 'Kategori seç',
+    selectEmoji: 'Emoji seç', whatFeel: 'Ne hissediyorsun? (isteğe bağlı)',
+    placeholder: 'Bir şeyler yaz...', share: 'Paylaş 🚀', saving: 'Kaydediliyor...',
+    shared: 'Duygun paylaşıldı!', error: 'Hata oluştu, tekrar dene',
+    selectCatWarn: '⚠️ Bir kategori seç!', cooldown: 'sonra paylaşabilirsin!',
+    dominant: 'Baskın duygu', lastHour: 'paylaşım • son 1 saat',
+    nearby: 'Yakınında', alsoFeels: 'de hissediyor! Yalnız değilsin 💙',
+    worldScore: 'dünya pozitif',
+  },
+  en: {
+    live: 'Live', people: 'people', howFeel: 'How are you feeling?',
+    anonymous: 'Shared anonymously. No one knows who you are.', selectCat: 'Select category',
+    selectEmoji: 'Select emoji', whatFeel: 'What are you feeling? (optional)',
+    placeholder: 'Write something...', share: 'Share 🚀', saving: 'Saving...',
+    shared: 'Your mood was shared!', error: 'Error occurred, try again',
+    selectCatWarn: '⚠️ Select a category!', cooldown: 'until you can share again!',
+    dominant: 'Dominant mood', lastHour: 'shares • last 1 hour',
+    nearby: 'Near you', alsoFeels: 'also feel the same! You are not alone 💙',
+    worldScore: 'world positive',
+  },
+  de: {
+    live: 'Live', people: 'Personen', howFeel: 'Wie fühlst du dich gerade?',
+    anonymous: 'Wird anonym geteilt.', selectCat: 'Kategorie wählen',
+    selectEmoji: 'Emoji wählen', whatFeel: 'Was fühlst du? (optional)',
+    placeholder: 'Schreib etwas...', share: 'Teilen 🚀', saving: 'Speichern...',
+    shared: 'Deine Stimmung wurde geteilt!', error: 'Fehler aufgetreten, erneut versuchen',
+    selectCatWarn: '⚠️ Kategorie auswählen!', cooldown: 'bis du wieder teilen kannst!',
+    dominant: 'Dominante Stimmung', lastHour: 'Beiträge • letzte Stunde',
+    nearby: 'In deiner Nähe', alsoFeels: 'fühlen dasselbe! Du bist nicht allein 💙',
+    worldScore: 'Welt positiv',
+  },
+  sv: {
+    live: 'Live', people: 'personer', howFeel: 'Hur mår du just nu?',
+    anonymous: 'Delas anonymt.', selectCat: 'Välj kategori',
+    selectEmoji: 'Välj emoji', whatFeel: 'Vad känner du? (valfritt)',
+    placeholder: 'Skriv något...', share: 'Dela 🚀', saving: 'Sparar...',
+    shared: 'Din känsla delades!', error: 'Fel uppstod, försök igen',
+    selectCatWarn: '⚠️ Välj en kategori!', cooldown: 'tills du kan dela igen!',
+    dominant: 'Dominerande känsla', lastHour: 'inlägg • senaste timmen',
+    nearby: 'Nära dig', alsoFeels: 'känner likadant! Du är inte ensam 💙',
+    worldScore: 'världen positiv',
+  },
+  fr: {
+    live: 'En direct', people: 'personnes', howFeel: 'Comment vous sentez-vous?',
+    anonymous: 'Partagé anonymement.', selectCat: 'Choisir une catégorie',
+    selectEmoji: 'Choisir un emoji', whatFeel: 'Que ressentez-vous? (optionnel)',
+    placeholder: 'Écrivez quelque chose...', share: 'Partager 🚀', saving: 'Enregistrement...',
+    shared: 'Votre humeur a été partagée!', error: 'Erreur, réessayez',
+    selectCatWarn: '⚠️ Choisissez une catégorie!', cooldown: 'avant de partager à nouveau!',
+    dominant: 'Humeur dominante', lastHour: 'partages • dernière heure',
+    nearby: 'Près de vous', alsoFeels: 'ressentent la même chose! Vous n'êtes pas seul 💙',
+    worldScore: 'monde positif',
+  },
+  es: {
+    live: 'En vivo', people: 'personas', howFeel: '¿Cómo te sientes ahora?',
+    anonymous: 'Compartido anónimamente.', selectCat: 'Seleccionar categoría',
+    selectEmoji: 'Seleccionar emoji', whatFeel: '¿Qué sientes? (opcional)',
+    placeholder: 'Escribe algo...', share: 'Compartir 🚀', saving: 'Guardando...',
+    shared: '¡Tu estado de ánimo fue compartido!', error: 'Error, inténtalo de nuevo',
+    selectCatWarn: '⚠️ ¡Selecciona una categoría!', cooldown: '¡hasta que puedas compartir de nuevo!',
+    dominant: 'Emoción dominante', lastHour: 'compartidos • última hora',
+    nearby: 'Cerca de ti', alsoFeels: 'sienten lo mismo! No estás solo 💙',
+    worldScore: 'mundo positivo',
+  },
+  ar: {
+    live: 'مباشر', people: 'أشخاص', howFeel: 'كيف تشعر الآن؟',
+    anonymous: 'مشاركة مجهولة الهوية.', selectCat: 'اختر الفئة',
+    selectEmoji: 'اختر رمزًا', whatFeel: 'ماذا تشعر؟ (اختياري)',
+    placeholder: 'اكتب شيئًا...', share: 'مشاركة 🚀', saving: 'جارٍ الحفظ...',
+    shared: 'تمت مشاركة مشاعرك!', error: 'حدث خطأ، حاول مرة أخرى',
+    selectCatWarn: '⚠️ اختر فئة!', cooldown: 'حتى تتمكن من المشاركة مجددًا!',
+    dominant: 'المشاعر السائدة', lastHour: 'مشاركات • الساعة الأخيرة',
+    nearby: 'بالقرب منك', alsoFeels: 'يشعرون بنفس الشيء! أنت لست وحدك 💙',
+    worldScore: 'العالم إيجابي',
+  },
+};
+
+// Detect language
+function detectLang() {
+  const lang = (navigator.language || navigator.userLanguage || 'en').toLowerCase().slice(0,2);
+  return TRANSLATIONS[lang] ? lang : 'en';
+}
+const LANG = detectLang();
+const T = TRANSLATIONS[LANG];
 
 const CATEGORIES = [
   { id:'happy',    label:'Mutlu',     emoji:'😊', color:'#fbbf24' },
@@ -304,7 +393,7 @@ function showRegionPanel(cityName, moods) {
   const dominant=CATEGORIES.find(c=>c.id===sorted[0]?.[0]);
 
   document.getElementById('rp-city').textContent='📍 '+cityName;
-  document.getElementById('rp-count').textContent=`${total} paylaşım • son 1 saat`;
+  document.getElementById('rp-count').textContent=`${total} ${T.lastHour}`;
 
   const bars=CATEGORIES.map(cat=>{
     const count=counts[cat.id]||0;
@@ -319,7 +408,7 @@ function showRegionPanel(cityName, moods) {
 
   document.getElementById('rp-bars').innerHTML=bars;
   document.getElementById('rp-badge').innerHTML=dominant
-    ?`<div class="dominant-badge" style="background:color-mix(in srgb,${dominant.color} 15%,transparent);color:${dominant.color}">${dominant.emoji} Baskın duygu: ${dominant.label}</div>`:'';
+    ?`<div class="dominant-badge" style="background:color-mix(in srgb,${dominant.color} 15%,transparent);color:${dominant.color}">${dominant.emoji} ${T.dominant}: ${dominant.label}</div>`:'';
 
   document.getElementById('region-panel').classList.add('open');
   regionOpen=true;
@@ -385,7 +474,7 @@ function subscribeRealtime() {
       drawHeatmap(allMoods);
       updateStats(allMoods);
       const cat=CATEGORIES.find(c=>c.id===payload.new.cat_id);
-      if(cat) showToast(`${cat.emoji} Yeni duygu paylaşıldı!`);
+      if(cat) showToast(`${cat.emoji} ${T.shared}`);
     })
     .subscribe();
 }
@@ -402,7 +491,7 @@ function checkNearby(userLat,userLng,catId) {
   });
   if(nearby.length>0){
     document.getElementById('notif-emoji').textContent=cat.emoji;
-    document.getElementById('notif-text').innerHTML=`Yakınında <strong>${nearby.length} kişi</strong> de <strong>${cat.label}</strong> hissediyor! Yalnız değilsin 💙`;
+    document.getElementById('notif-text').innerHTML=`${T.nearby} <strong>${nearby.length} ${T.people}</strong> ${T.alsoFeels}`;
     document.getElementById('nearby-notif').classList.add('show');
     setTimeout(()=>document.getElementById('nearby-notif').classList.remove('show'),6000);
   }
@@ -410,9 +499,9 @@ function checkNearby(userLat,userLng,catId) {
 
 // ── SUBMIT ────────────────────────────────────────────────
 document.getElementById('submit-btn').onclick=async()=>{
-  if(!selectedCat){showToast('⚠️ Bir kategori seç!');return;}
+  if(!selectedCat){showToast(T.selectCatWarn);return;}
   const btn=document.getElementById('submit-btn');
-  btn.disabled=true;btn.textContent='Kaydediliyor...';
+  btn.disabled=true;btn.textContent=T.saving;
 
   const doInsert=async(lat,lng)=>{
     const cat=CATEGORIES.find(c=>c.id===selectedCat);
@@ -424,9 +513,9 @@ document.getElementById('submit-btn').onclick=async()=>{
       city_name:cityName,
     });
     btn.disabled=false;btn.textContent='Paylaş 🚀';
-    if(error){showToast('❌ Hata oluştu, tekrar dene');console.error(error);return;}
+    if(error){showToast('❌ '+T.error);console.error(error);return;}
     closeSheet();
-    showToast(`${cat.emoji} Duygun paylaşıldı!`);
+    showToast(`${cat.emoji} ${T.shared}`);
     checkNearby(lat,lng,selectedCat);
     selectedCat=null;selectedEmoji=null;
     document.querySelectorAll('.cat-btn,.emoji-pick').forEach(b=>b.classList.remove('selected'));
@@ -440,6 +529,22 @@ document.getElementById('submit-btn').onclick=async()=>{
 };
 
 // ── UI ────────────────────────────────────────────────────
+function applyTranslations() {
+  // HTML elements
+  const el = id => document.getElementById(id);
+  if(el('live-text')) el('live-text').textContent = T.live;
+  if(el('sheet-title')) el('sheet-title').textContent = T.howFeel;
+  if(el('sheet-sub')) el('sheet-sub').textContent = T.anonymous;
+  if(el('cat-label')) el('cat-label').textContent = T.selectCat;
+  if(el('emoji-label')) el('emoji-label').textContent = T.selectEmoji;
+  if(el('feel-label')) el('feel-label').textContent = T.whatFeel;
+  if(el('people-text')) el('people-text').textContent = T.people;
+  if(el('mood-text')) el('mood-text').placeholder = T.placeholder;
+  if(el('submit-btn')) el('submit-btn').textContent = T.share;
+  // RTL for Arabic
+  if(LANG === 'ar') document.body.style.direction = 'rtl';
+}
+
 function buildCategories(){
   const grid=document.getElementById('cat-grid');
   CATEGORIES.forEach(cat=>{
@@ -483,6 +588,7 @@ function showToast(msg){
 document.getElementById('fab').onclick=()=>sheetOpen?closeSheet():openSheet();
 document.getElementById('overlay').onclick=closeSheet;
 
+applyTranslations();
 buildCategories();
 buildEmojis();
 loadMoods();

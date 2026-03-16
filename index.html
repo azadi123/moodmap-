@@ -272,15 +272,26 @@ function detectLang() {
 const LANG = detectLang();
 const T = TRANSLATIONS[LANG];
 
+const CAT_LABELS = {
+  happy:   {tr:'Mutlu',    en:'Happy',    de:'Glücklich', sv:'Glad',     fr:'Heureux',  es:'Feliz',    ar:'سعيد'},
+  sad:     {tr:'Üzgün',   en:'Sad',      de:'Traurig',   sv:'Ledsen',   fr:'Triste',   es:'Triste',   ar:'حزين'},
+  angry:   {tr:'Sinirli', en:'Angry',    de:'Wütend',    sv:'Arg',      fr:'En colère',es:'Enojado',  ar:'غاضب'},
+  anxious: {tr:'Endişeli',en:'Anxious',  de:'Ängstlich', sv:'Orolig',   fr:'Anxieux',  es:'Ansioso',  ar:'قلق'},
+  calm:    {tr:'Sakin',   en:'Calm',     de:'Ruhig',     sv:'Lugn',     fr:'Calme',    es:'Tranquilo',ar:'هادئ'},
+  excited: {tr:'Heyecanlı',en:'Excited',de:'Aufgeregt', sv:'Upphetsad',fr:'Excité',   es:'Emocionado',ar:'متحمس'},
+  love:    {tr:'Aşık',    en:'In Love',  de:'Verliebt',  sv:'Förälskad',fr:'Amoureux', es:'Enamorado',ar:'عاشق'},
+  bored:   {tr:'Sıkılmış',en:'Bored',   de:'Gelangweilt',sv:'Uttråkad', fr:'Ennuyé',  es:'Aburrido', ar:'ملول'},
+};
+
 const CATEGORIES = [
-  { id:'happy',    label:'Mutlu',     emoji:'😊', color:'#fbbf24' },
-  { id:'sad',      label:'Üzgün',     emoji:'😢', color:'#60a5fa' },
-  { id:'angry',    label:'Sinirli',   emoji:'😠', color:'#f87171' },
-  { id:'anxious',  label:'Endişeli',  emoji:'😰', color:'#a78bfa' },
-  { id:'calm',     label:'Sakin',     emoji:'😌', color:'#34d399' },
-  { id:'excited',  label:'Heyecanlı', emoji:'🤩', color:'#fb923c' },
-  { id:'love',     label:'Aşık',      emoji:'🥰', color:'#f472b6' },
-  { id:'bored',    label:'Sıkılmış',  emoji:'😑', color:'#94a3b8' },
+  { id:'happy',    label:CAT_LABELS.happy[LANG]||CAT_LABELS.happy.en,    emoji:'😊', color:'#fbbf24' },
+  { id:'sad',      label:CAT_LABELS.sad[LANG]||CAT_LABELS.sad.en,        emoji:'😢', color:'#60a5fa' },
+  { id:'angry',    label:CAT_LABELS.angry[LANG]||CAT_LABELS.angry.en,    emoji:'😠', color:'#f87171' },
+  { id:'anxious',  label:CAT_LABELS.anxious[LANG]||CAT_LABELS.anxious.en,emoji:'😰', color:'#a78bfa' },
+  { id:'calm',     label:CAT_LABELS.calm[LANG]||CAT_LABELS.calm.en,      emoji:'😌', color:'#34d399' },
+  { id:'excited',  label:CAT_LABELS.excited[LANG]||CAT_LABELS.excited.en,emoji:'🤩', color:'#fb923c' },
+  { id:'love',     label:CAT_LABELS.love[LANG]||CAT_LABELS.love.en,      emoji:'🥰', color:'#f472b6' },
+  { id:'bored',    label:CAT_LABELS.bored[LANG]||CAT_LABELS.bored.en,    emoji:'😑', color:'#94a3b8' },
 ];
 const EMOJIS = ['😊','😢','😠','😰','😌','🤩','🥰','😑','😤','😭','🤗','😩','💪','🥲','😴','🫶'];
 const EXPIRY_MS = 60 * 60 * 1000;

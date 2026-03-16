@@ -753,8 +753,9 @@ document.getElementById('overlay').onclick=closeSheet;
 // ── CHAT SYSTEM ───────────────────────────────────────────
 const ANON_NAMES = ['🦊 Kızıl Tilki','🐺 Gri Kurt','🦁 Aslan','🐻 Ayı','🦋 Kelebek','🦅 Kartal','🐬 Yunus','🦉 Baykuş','🐯 Kaplan','🦄 Unicorn','🐸 Kurbağa','🦚 Tavuskuşu'];
 
-let myUserId = localStorage.getItem('moodmap_uid');
-if(!myUserId) { myUserId = 'u_'+Math.random().toString(36).slice(2,10); localStorage.setItem('moodmap_uid', myUserId); }
+// Use sessionStorage so each tab/device gets unique ID even on same account
+let myUserId = sessionStorage.getItem('moodmap_uid');
+if(!myUserId) { myUserId = 'u_'+Math.random().toString(36).slice(2,10)+Date.now().toString(36); sessionStorage.setItem('moodmap_uid', myUserId); }
 const myAnonName = ANON_NAMES[parseInt(myUserId.slice(2,4),36) % ANON_NAMES.length];
 
 let chatState = 'none'; // none | searching | pending | request | active

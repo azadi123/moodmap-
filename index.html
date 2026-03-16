@@ -849,34 +849,38 @@ async function findMatch() {
 }
 
 function subscribeToMatch(matchId, role) {
-  if(matchSubscription) matchSubscription.unsubscribe();
-  matchSubscription = db.channel('match-'+matchId)
-    .on('postgres_changes', {event:'UPDATE', schema:'public', table:'matches', filter:`id=eq.${matchId}`}, payload => {
-      const m = payload.new;
-      if(m.status === 'request' && role === 'a') {
-        currentMatch = m;
-        showChatState('request');
-        document.getElementById('chat-btn').classList.add('has-notif');
-        sendNotif('MoodMap', 'Biri seninle konuşmak istiyor!', 'match');
-        openChatPanel();
-      }
-      if(m.status === 'active') {
-        currentMatch = m;
-        startActiveChat(matchId, role);
-        sendNotif('MoodMap', 'Sohbet başladı!', 'match');
-      }
-      if(m.status === 'declined' || m.status === 'cancelled' || m.status === 'ended') {
-        clearInterval(chatTimerInterval);
-        if(msgSubscription) { msgSubscription.unsubscribe(); msgSubscription = null; }
-        chatState = 'none';
-        currentMatchId = null;
-        currentMatch = null;
-        const msg = m.status === 'ended' ? '👋 Karşı taraf sohbeti sonlandırdı' : '❌ Eşleşme iptal edildi';
-        sendNotif('MoodMap', msg, 'match');
-        openChatPanel();
-      }
-    })
-    .subscribe();
+  // Clear any existing polling
+  if(matchSubscription) { clearInterval(matchSubscription); matchSubscription = null; }
+  
+  // Poll every 2 seconds
+  matchSubscription = setInterval(async () => {
+    if(!matchId) { clearInterval(matchSubscription); return; }
+    const {data:m, error} = await db.from('matches').select('*').eq('id', matchId).single();
+    if(error || !m) return;
+    
+    if(m.status === 'request' && role === 'a' && chatState === 'searching') {
+      currentMatch = m;
+      showChatState('request');
+      document.getElementById('chat-btn').classList.add('has-notif');
+      sendNotif('MoodMap', 'Biri seninle konuşmak istiyor!', 'match');
+      openChatPanel();
+    }
+    if(m.status === 'active' && chatState !== 'active') {
+      currentMatch = m;
+      startActiveChat(matchId, role);
+      sendNotif('MoodMap', 'Sohbet başladı!', 'match');
+    }
+    if((m.status === 'declined' || m.status === 'cancelled' || m.status === 'ended') && chatState === 'active') {
+      clearInterval(matchSubscription); matchSubscription = null;
+      clearInterval(chatTimerInterval);
+      if(msgSubscription) { msgSubscription.unsubscribe(); msgSubscription = null; }
+      chatState = 'none';
+      currentMatchId = null;
+      currentMatch = null;
+      sendNotif('MoodMap', '👋 Karşı taraf sohbeti sonlandırdı', 'match');
+      openChatPanel();
+    }
+  }, 2000);
 }
 
 async function acceptMatch() {
@@ -911,23 +915,6 @@ function startActiveChat(matchId, role) {
   const endTime = new Date(currentMatch.created_at).getTime() + 60*60*1000;
   updateTimer(endTime);
   chatTimerInterval = setInterval(() => updateTimer(endTime), 1000);
-
-  // Poll match status every 3 seconds to detect if other side ended chat
-  if(matchSubscription) clearInterval(matchSubscription);
-  matchSubscription = setInterval(async () => {
-    if(!currentMatchId) { clearInterval(matchSubscription); return; }
-    const {data} = await db.from('matches').select('status').eq('id', currentMatchId).single();
-    if(data && (data.status === 'ended' || data.status === 'cancelled')) {
-      clearInterval(matchSubscription);
-      clearInterval(chatTimerInterval);
-      if(msgSubscription) { msgSubscription.unsubscribe(); msgSubscription = null; }
-      chatState = 'none';
-      currentMatchId = null;
-      currentMatch = null;
-      sendNotif('MoodMap', '👋 Karşı taraf sohbeti sonlandırdı', 'match');
-      openChatPanel();
-    }
-  }, 3000);
 
   // Subscribe to messages
   if(msgSubscription) msgSubscription.unsubscribe();

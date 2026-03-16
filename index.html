@@ -235,7 +235,10 @@
   <div class="cp-handle"></div>
   <div class="cp-header">
     <div class="cp-title" id="cp-title">💬 Anonim Sohbet</div>
-    <span class="cp-close" id="cp-close">✕</span>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button id="end-chat-btn" style="display:none;font-size:11px;padding:5px 10px;background:rgba(239,68,68,0.15);color:#f87171;border:1px solid rgba(239,68,68,0.3);border-radius:20px;cursor:pointer;font-family:DM Sans,sans-serif">Bitir</button>
+      <span class="cp-close" id="cp-close">✕</span>
+    </div>
   </div>
 
   <!-- No mood shared yet -->
@@ -733,9 +736,11 @@ let msgSubscription = null;
 function showChatState(state) {
   ['none','pending','request','active'].forEach(s => {
     const el = document.getElementById('chat-state-'+s);
-    if(el) el.style.display = s===state ? (s==='active'?'flex':'flex') : 'none';
+    if(el) el.style.display = s===state ? 'flex' : 'none';
   });
   chatState = state;
+  const endBtn = document.getElementById('end-chat-btn');
+  if(endBtn) endBtn.style.display = state==='active' ? 'block' : 'none';
 }
 
 function openChatPanel() {
@@ -818,21 +823,24 @@ function subscribeToMatch(matchId, role) {
     .on('postgres_changes', {event:'UPDATE', schema:'public', table:'matches', filter:`id=eq.${matchId}`}, payload => {
       const m = payload.new;
       if(m.status === 'request' && role === 'a') {
-        // Someone wants to chat with me
         currentMatch = m;
         showChatState('request');
         document.getElementById('chat-btn').classList.add('has-notif');
-        // Auto-open panel
+        sendNotif('MoodMap', 'Biri seninle konuşmak istiyor! 👋', '👋');
         openChatPanel();
       }
       if(m.status === 'active') {
         currentMatch = m;
         startActiveChat(matchId, role);
+        sendNotif('MoodMap', 'Sohbet başladı! 💬', '💬');
       }
-      if(m.status === 'declined' || m.status === 'cancelled') {
-        showChatState('none');
+      if(m.status === 'declined' || m.status === 'cancelled' || m.status === 'ended') {
+        clearInterval(chatTimerInterval);
         chatState = 'none';
-        showToast('❌ Eşleşme iptal edildi');
+        currentMatchId = null;
+        currentMatch = null;
+        showToast('❌ Sohbet sona erdi');
+        openChatPanel();
       }
     })
     .subscribe();
@@ -899,18 +907,42 @@ function updateTimer(endTime) {
   if(barEl) barEl.style.width = (remaining / (60*60*1000) * 100) + '%';
 }
 
-function endChat() {
-  showToast('⏰ Sohbet süresi doldu, mesajlar silindi');
+function endChat(manual=false) {
+  if(manual && currentMatchId) {
+    db.from('matches').update({status:'ended'}).eq('id', currentMatchId);
+  }
+  clearInterval(chatTimerInterval);
+  showToast(manual ? '👋 Sohbet sonlandırıldı' : '⏰ Sohbet süresi doldu');
   chatState = 'none';
   currentMatchId = null;
   currentMatch = null;
-  if(matchSubscription) matchSubscription.unsubscribe();
-  if(msgSubscription) msgSubscription.unsubscribe();
-  closeChatPanel();
+  if(matchSubscription) { matchSubscription.unsubscribe(); matchSubscription = null; }
+  if(msgSubscription) { msgSubscription.unsubscribe(); msgSubscription = null; }
+  // Show find new match option
+  openChatPanel();
+}
+
+// ── NOTIFICATIONS ─────────────────────────────────────────
+async function requestNotifPermission() {
+  if('Notification' in window && Notification.permission === 'default') {
+    await Notification.requestPermission();
+  }
+}
+
+function sendNotif(title, body, icon='💬') {
+  // In-app toast always
+  showToast(icon + ' ' + body);
+  // Push notification if permitted and app in background
+  if('Notification' in window && Notification.permission === 'granted' && document.hidden) {
+    new Notification(title, { body, icon: '/icon-192.png', badge: '/icon-192.png', vibrate: [200,100,200] });
+  }
+  // Vibrate
+  if(navigator.vibrate) navigator.vibrate([200,100,200]);
 }
 
 function appendMessage(msg, role) {
   const isMine = msg.sender === myUserId;
+  if(!isMine) sendNotif('MoodMap', msg.content, '💬');
   const el = document.createElement('div');
   el.className = 'msg-row ' + (isMine ? 'mine' : 'other');
   const time = new Date(msg.created_at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
@@ -936,6 +968,8 @@ async function sendMessage() {
 // Event listeners
 document.getElementById('chat-btn').onclick = openChatPanel;
 document.getElementById('cp-close').onclick = closeChatPanel;
+document.getElementById('end-chat-btn').onclick = () => endChat(true);
+requestNotifPermission();
 document.getElementById('chat-overlay').onclick = closeChatPanel;
 document.getElementById('accept-btn').onclick = acceptMatch;
 document.getElementById('decline-btn').onclick = declineMatch;

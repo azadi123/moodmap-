@@ -799,9 +799,15 @@ document.getElementById('overlay').onclick=closeSheet;
 // ── CHAT SYSTEM ───────────────────────────────────────────
 const ANON_NAMES = ['🦊 Kızıl Tilki','🐺 Gri Kurt','🦁 Aslan','🐻 Ayı','🦋 Kelebek','🦅 Kartal','🐬 Yunus','🦉 Baykuş','🐯 Kaplan','🦄 Unicorn','🐸 Kurbağa','🦚 Tavuskuşu'];
 
-// Use sessionStorage so each tab/device gets unique ID even on same account
-let myUserId = sessionStorage.getItem('moodmap_uid');
-if(!myUserId) { myUserId = 'u_'+Math.random().toString(36).slice(2,10)+Date.now().toString(36); sessionStorage.setItem('moodmap_uid', myUserId); }
+// Persistent anonymous user ID stored in localStorage
+// Same user across devices if they use same browser
+let myUserId = localStorage.getItem('moodmap_uid');
+if(!myUserId) { 
+  myUserId = 'u_'+Math.random().toString(36).slice(2,10)+Date.now().toString(36); 
+  localStorage.setItem('moodmap_uid', myUserId);
+  // Register in DB
+  db.from('users').insert({anon_id: myUserId}).then(()=>{});
+}
 const myAnonName = ANON_NAMES[parseInt(myUserId.slice(2,4),36) % ANON_NAMES.length];
 
 let chatState = 'none'; // none | searching | pending | request | active
@@ -827,6 +833,7 @@ function openChatPanel() {
   document.getElementById('chat-overlay').style.opacity='1';
   document.getElementById('chat-overlay').style.pointerEvents='all';
   map.dragging.disable();
+  applyTranslations();
   // Determine which state to show
   if(chatState === 'active') { showChatState('active'); return; }
   if(chatState === 'request') { showChatState('request'); return; }

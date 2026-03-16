@@ -630,7 +630,8 @@ function subscribeRealtime() {
       }).eq('id', m.id);
       currentMatchId = m.id;
       currentMatch = {...m, user_b: myUserId, status:'request'};
-      subscribeToMatch(m.id, 'b');
+      chatState = 'request';
+      startPolling(m.id, 'b');
       showChatState('request');
       document.getElementById('chat-btn').classList.add('has-notif');
       sendNotif('MoodMap', 'Yakınında biri seninle konuşmak istiyor!', 'match');
@@ -802,34 +803,81 @@ function closeChatPanel() {
   map.dragging.enable();
 }
 
+// ── MATCH POLLING ────────────────────────────────────────
+let pollInterval = null;
+
+function startPolling(matchId, role) {
+  if(pollInterval) clearInterval(pollInterval);
+  pollInterval = setInterval(async () => {
+    const {data:m} = await db.from('matches').select('*').eq('id', matchId).single();
+    if(!m) return;
+
+    // A: someone requested to chat
+    if(m.status === 'request' && role === 'a' && chatState === 'searching') {
+      currentMatch = m;
+      chatState = 'request';
+      showChatState('request');
+      document.getElementById('chat-btn').classList.add('has-notif');
+      sendNotif('MoodMap', 'Biri seninle konuşmak istiyor!', 'match');
+      openChatPanel();
+    }
+
+    // Both: chat became active
+    if(m.status === 'active' && chatState !== 'active') {
+      currentMatch = m;
+      startActiveChat(matchId, role);
+      sendNotif('MoodMap', 'Sohbet başladı! 💬', 'match');
+    }
+
+    // Both: chat ended by other side
+    if((m.status === 'ended' || m.status === 'declined' || m.status === 'cancelled') && (chatState === 'active' || chatState === 'request' || chatState === 'searching')) {
+      clearInterval(pollInterval); pollInterval = null;
+      clearInterval(chatTimerInterval);
+      if(msgSubscription) { msgSubscription.unsubscribe(); msgSubscription = null; }
+      const wasActive = chatState === 'active';
+      chatState = 'none';
+      currentMatchId = null;
+      currentMatch = null;
+      if(wasActive) sendNotif('MoodMap', '👋 Karşı taraf sohbeti sonlandırdı', 'match');
+      else showToast('❌ Eşleşme iptal edildi');
+      openChatPanel();
+    }
+  }, 2000);
+}
+
+function subscribeToMatch(matchId, role) {
+  startPolling(matchId, role);
+}
+
 // Find a match
 async function findMatch() {
   if(!myLastMood) return;
   showChatState('pending');
   chatState = 'searching';
 
-  // Cancel existing pending matches
-  await db.from('matches').update({status:'cancelled'}).eq('user_a', myUserId).eq('status','pending');
+  // Cancel my old pending matches
+  await db.from('matches').update({status:'cancelled'})
+    .eq('user_a', myUserId).eq('status','pending');
 
-  // Look for existing pending match with same mood nearby
+  // Look for existing pending match (not mine, same mood, nearby)
   const since = new Date(Date.now() - 30*60*1000).toISOString();
   const {data: existing} = await db.from('matches')
     .select('*').eq('cat_id', myLastMood.cat_id).eq('status','pending')
-    .neq('user_a', myUserId).gte('created_at', since).limit(10);
+    .neq('user_a', myUserId).gte('created_at', since).limit(20);
 
   if(existing && existing.length > 0) {
-    // Find closest one within 50km
     const close = existing.find(m => {
       if(!m.lat_a || !m.lng_a) return true;
       return getDistance(myLastMood.lat, myLastMood.lng, m.lat_a, m.lng_a) <= 50;
     });
     if(close) {
-      // Accept this match
       await db.from('matches').update({
-        user_b: myUserId, status:'request', lat_b: myLastMood.lat, lng_b: myLastMood.lng
+        user_b: myUserId, status:'request',
+        lat_b: myLastMood.lat, lng_b: myLastMood.lng
       }).eq('id', close.id);
       currentMatchId = close.id;
-      subscribeToMatch(close.id, 'b');
+      currentMatch = close;
+      startPolling(close.id, 'b');
       return;
     }
   }
@@ -837,72 +885,40 @@ async function findMatch() {
   // Create new pending match
   const {data: newMatch} = await db.from('matches').insert({
     user_a: myUserId, user_b: null,
-    cat_id: myLastMood.cat_id,
-    status: 'pending',
+    cat_id: myLastMood.cat_id, status: 'pending',
     lat_a: myLastMood.lat, lng_a: myLastMood.lng,
   }).select().single();
 
   if(newMatch) {
     currentMatchId = newMatch.id;
-    subscribeToMatch(newMatch.id, 'a');
+    startPolling(newMatch.id, 'a');
   }
-}
-
-function subscribeToMatch(matchId, role) {
-  // Clear any existing polling
-  if(matchSubscription) { clearInterval(matchSubscription); matchSubscription = null; }
-  
-  // Poll every 2 seconds
-  matchSubscription = setInterval(async () => {
-    if(!matchId) { clearInterval(matchSubscription); return; }
-    const {data:m, error} = await db.from('matches').select('*').eq('id', matchId).single();
-    if(error || !m) return;
-    
-    if(m.status === 'request' && role === 'a' && chatState === 'searching') {
-      currentMatch = m;
-      showChatState('request');
-      document.getElementById('chat-btn').classList.add('has-notif');
-      sendNotif('MoodMap', 'Biri seninle konuşmak istiyor!', 'match');
-      openChatPanel();
-    }
-    if(m.status === 'active' && chatState !== 'active') {
-      currentMatch = m;
-      startActiveChat(matchId, role);
-      sendNotif('MoodMap', 'Sohbet başladı!', 'match');
-    }
-    if((m.status === 'declined' || m.status === 'cancelled' || m.status === 'ended') && chatState === 'active') {
-      clearInterval(matchSubscription); matchSubscription = null;
-      clearInterval(chatTimerInterval);
-      if(msgSubscription) { msgSubscription.unsubscribe(); msgSubscription = null; }
-      chatState = 'none';
-      currentMatchId = null;
-      currentMatch = null;
-      sendNotif('MoodMap', '👋 Karşı taraf sohbeti sonlandırdı', 'match');
-      openChatPanel();
-    }
-  }, 2000);
 }
 
 async function acceptMatch() {
   if(!currentMatchId) return;
-  await db.from('matches').update({status:'active'}).eq('id', currentMatchId);
   document.getElementById('chat-btn').classList.remove('has-notif');
+  // Start chat for both sides via status update
+  await db.from('matches').update({status:'active'}).eq('id', currentMatchId);
+  // B side starts chat directly
+  const {data:m} = await db.from('matches').select('*').eq('id', currentMatchId).single();
+  if(m) { currentMatch = m; startActiveChat(currentMatchId, 'b'); }
 }
 
 async function declineMatch() {
   if(!currentMatchId) return;
   await db.from('matches').update({status:'declined'}).eq('id', currentMatchId);
-  currentMatchId = null;
+  if(pollInterval) { clearInterval(pollInterval); pollInterval = null; }
+  currentMatchId = null; currentMatch = null;
   chatState = 'none';
-  showChatState('none');
   openChatPanel();
 }
 
 async function cancelSearch() {
   if(currentMatchId) await db.from('matches').update({status:'cancelled'}).eq('id', currentMatchId);
-  currentMatchId = null;
+  if(pollInterval) { clearInterval(pollInterval); pollInterval = null; }
+  currentMatchId = null; currentMatch = null;
   chatState = 'none';
-  showChatState('none');
   openChatPanel();
 }
 
@@ -953,6 +969,7 @@ function endChat(manual=false) {
   chatState = 'none';
   currentMatchId = null;
   currentMatch = null;
+  if(pollInterval) { clearInterval(pollInterval); pollInterval = null; }
   if(matchSubscription) { clearInterval(matchSubscription); matchSubscription = null; }
   if(msgSubscription) { msgSubscription.unsubscribe(); msgSubscription = null; }
   // Show find new match option
@@ -1050,14 +1067,16 @@ async function checkPendingMatches() {
     
     if(m.status === 'pending' && role === 'a') {
       chatState = 'searching';
-      subscribeToMatch(m.id, role);
+      showChatState('pending');
+      startPolling(m.id, role);
     } else if(m.status === 'request' && role === 'a') {
       chatState = 'request';
+      showChatState('request');
       document.getElementById('chat-btn').classList.add('has-notif');
-      subscribeToMatch(m.id, role);
+      startPolling(m.id, role);
     } else if(m.status === 'active') {
       startActiveChat(m.id, role);
-      subscribeToMatch(m.id, role);
+      startPolling(m.id, role);
     }
   }
 }

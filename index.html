@@ -867,10 +867,12 @@ function subscribeToMatch(matchId, role) {
       }
       if(m.status === 'declined' || m.status === 'cancelled' || m.status === 'ended') {
         clearInterval(chatTimerInterval);
+        if(msgSubscription) { msgSubscription.unsubscribe(); msgSubscription = null; }
         chatState = 'none';
         currentMatchId = null;
         currentMatch = null;
-        showToast('❌ Sohbet sona erdi');
+        const msg = m.status === 'ended' ? '👋 Karşı taraf sohbeti sonlandırdı' : '❌ Eşleşme iptal edildi';
+        sendNotif('MoodMap', msg, 'match');
         openChatPanel();
       }
     })

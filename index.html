@@ -328,15 +328,15 @@
 
 <div id="bottom-sheet">
   <div class="sheet-handle"></div>
-  <div class="sheet-title" id="sheet-title">Şu an nasıl hissediyorsun?</div>
+  <div class="sheet-title" id="sheet-title"></div>
   <div class="sheet-sub" id="sheet-sub"></div>
-  <div class="msg-label" id="cat-label">Kategori seç</div>
+  <div class="msg-label" id="cat-label"></div>
   <div class="category-grid" id="cat-grid"></div>
-  <div class="msg-label" id="emoji-label">Emoji seç</div>
+  <div class="msg-label" id="emoji-label"></div>
   <div class="emoji-row" id="emoji-row"></div>
-  <div class="msg-label" id="feel-label">Ne hissediyorsun?</div>
+  <div class="msg-label" id="feel-label"></div>
   <textarea class="msg-input" id="mood-text" placeholder="Bir şeyler yaz..." maxlength="60"></textarea>
-  <button class="submit-btn" id="submit-btn">Paylaş 🚀</button>
+  <button class="submit-btn" id="submit-btn"></button>
 </div>
 
 <script>
@@ -972,11 +972,21 @@ function showLogout() {
 // Check if already logged in
 const savedUsername = localStorage.getItem('moodmap_username');
 if(savedUsername) {
-  currentUsername = savedUsername;
-  document.getElementById('login-screen').classList.add('hidden');
-  const el = document.getElementById('username-display');
-  if(el) el.textContent = '🎭 ' + savedUsername;
-}
+  // Verify account still exists in DB
+  db.from('users').select('anon_id').eq('username', savedUsername).single().then(({data}) => {
+    if(data) {
+      currentUsername = savedUsername;
+      myUserId = data.anon_id;
+      localStorage.setItem('moodmap_uid', data.anon_id);
+      document.getElementById('login-screen').classList.add('hidden');
+      const el = document.getElementById('username-display');
+      if(el) el.textContent = '🎭 ' + savedUsername;
+    } else {
+      // Account not found, show login
+      localStorage.removeItem('moodmap_username');
+    }
+  });
+} // else login screen stays visible
 
 // Login input enter key
 document.getElementById('login-username').addEventListener('keydown', e => { if(e.key==='Enter') document.getElementById('login-password').focus(); });
@@ -1345,6 +1355,9 @@ buildEmojis();
 loadMoods();
 subscribeRealtime();
 setInterval(loadMoods,60*1000);
+
+// Debug: log current state
+console.log('App initialized, userId:', myUserId, 'username:', localStorage.getItem('moodmap_username'));
 </script>
 <script>
 if('serviceWorker' in navigator) {

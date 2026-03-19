@@ -862,6 +862,7 @@ let pollInterval = null;
 
 function startPolling(matchId, role) {
   if(pollInterval) clearInterval(pollInterval);
+  const interval = chatState === 'active' ? 1500 : 2000;
   pollInterval = setInterval(async () => {
     const {data:m} = await db.from('matches').select('*').eq('id', matchId).single();
     if(!m) return;
@@ -872,7 +873,7 @@ function startPolling(matchId, role) {
       chatState = 'request';
       showChatState('request');
       document.getElementById('chat-btn').classList.add('has-notif');
-      sendNotif('MoodMap', 'Biri seninle konuşmak istiyor!', 'match');
+      sendNotif('MoodMap', T.someoneWants||'Someone wants to chat', 'match');
       openChatPanel();
     }
 
@@ -880,7 +881,21 @@ function startPolling(matchId, role) {
     if(m.status === 'active' && chatState !== 'active') {
       currentMatch = m;
       startActiveChat(matchId, role);
-      sendNotif('MoodMap', 'Sohbet başladı! 💬', 'match');
+      sendNotif('MoodMap', (T.chatTitle||'Chat')+' 💬', 'match');
+      // Restart polling faster now that chat is active
+      clearInterval(pollInterval);
+      pollInterval = setInterval(async () => {
+        const {data:mc} = await db.from('matches').select('status').eq('id', matchId).single();
+        if(!mc) return;
+        if(mc.status === 'ended' || mc.status === 'cancelled') {
+          clearInterval(pollInterval); pollInterval = null;
+          clearInterval(chatTimerInterval);
+          if(msgSubscription) { msgSubscription.unsubscribe(); msgSubscription = null; }
+          chatState = 'none'; currentMatchId = null; currentMatch = null;
+          sendNotif('MoodMap', '👋 '+(T.someoneWants||'Chat ended'), 'match');
+          openChatPanel();
+        }
+      }, 1500);
     }
 
     // Both: chat ended by other side
@@ -892,7 +907,7 @@ function startPolling(matchId, role) {
       chatState = 'none';
       currentMatchId = null;
       currentMatch = null;
-      if(wasActive) sendNotif('MoodMap', '👋 Karşı taraf sohbeti sonlandırdı', 'match');
+      if(wasActive) sendNotif('MoodMap', '👋 '+(T.endChat||'Chat ended'), 'match');
       else showToast('❌ Eşleşme iptal edildi');
       openChatPanel();
     }

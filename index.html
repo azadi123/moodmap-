@@ -235,7 +235,10 @@
 <header>
   <div class="logo"></div>
   <div id="world-score" style="font-size:11px;color:var(--muted);font-weight:500;text-align:right;line-height:1.3">🌍 —</div>
-  <div class="live-badge"><div class="live-dot"></div> <span id="live-text"></span></div>
+  <div style="display:flex;align-items:center;gap:10px">
+    <div class="user-badge" id="user-badge" onclick="showLogout()">👤 <span id="username-display"></span></div>
+    <div class="live-badge"><div class="live-dot"></div> <span id="live-text"></span></div>
+  </div>
 </header>
 
 <div id="map-wrap">
@@ -962,8 +965,10 @@ function loginSuccess(username, anonId) {
 }
 
 function showLogout() {
-  if(confirm((T.logoutConfirm||'Sign out?'))) {
+  const username = localStorage.getItem('moodmap_username');
+  if(confirm(`${username} — ${T.logoutConfirm||'Sign out?'}`)) {
     localStorage.removeItem('moodmap_username');
+    localStorage.removeItem('moodmap_uid');
     currentUsername = null;
     location.reload();
   }

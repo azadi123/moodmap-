@@ -1306,14 +1306,14 @@ function appendMessage(msg, role) {
   el.className = 'msg-row ' + (isMine ? 'mine' : 'other');
   const time = new Date(msg.created_at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
   const myName = getChatName();
-  const otherName = myAnonName !== myName ? myAnonName : ANON_NAMES.filter(n=>n!==myAnonName)[0];
-  const avatarName = isMine ? myName : otherName;
-  const avatarIcon = avatarName.split(' ')[0];
+  // Use username stored in message if available, else anon name
+  const displayName = isMine ? myName : (msg.username || myAnonName);
+  const avatarIcon = displayName.slice(0,2).toUpperCase();
   el.innerHTML = `
-    <div class="msg-avatar" title="${avatarName}" style="font-size:11px">${avatarIcon.length > 2 ? avatarIcon : avatarName.slice(0,2).toUpperCase()}</div>
+    <div class="msg-avatar" title="${displayName}" style="font-size:10px">${avatarIcon}</div>
     <div>
-      <div style="font-size:9px;color:var(--muted);margin-bottom:3px;${isMine?'text-align:right':''}">${avatarName}</div>
-      <div class="msg-bubble">${msg.content}</div>
+      <div style="font-size:10px;color:var(--muted);margin-bottom:2px;${isMine?'text-align:right':''}">${displayName}</div>
+      <div class="msg-bubble" style="font-size:13px">${msg.content}</div>
       <div class="msg-time">${time}</div>
     </div>`;
   document.getElementById('chat-messages').appendChild(el);
@@ -1325,7 +1325,7 @@ async function sendMessage() {
   const text = input.value.trim();
   if(!text || !currentMatchId) return;
   input.value = '';
-  await db.from('messages').insert({ match_id: currentMatchId, sender: myUserId, content: text });
+  await db.from('messages').insert({ match_id: currentMatchId, sender: myUserId, content: text, username: getChatName() });
 }
 
 // Event listeners

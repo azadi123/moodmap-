@@ -201,8 +201,8 @@
   .login-error { color:#f87171; font-size:13px; text-align:center; min-height:20px; }
   .login-anon { margin-top:20px; font-size:13px; color:var(--muted); text-align:center; cursor:pointer; text-decoration:underline; }
   .login-anon:hover { color:var(--text); }
-  .user-badge { display:flex; align-items:center; gap:6px; font-size:12px; color:var(--muted); cursor:pointer; }
-  .user-badge:hover { color:var(--text); }
+  .user-badge { display:flex; align-items:center; gap:6px; font-size:12px; color:var(--text); cursor:pointer; font-weight:500; }
+  .user-badge:hover { color:var(--accent); }
   #bottom-sheet::-webkit-scrollbar { width:3px; }
   #bottom-sheet::-webkit-scrollbar-thumb { background:var(--border); border-radius:2px; }
 </style>
@@ -229,7 +229,7 @@
     <div class="login-error" id="login-error"></div>
     <button class="login-btn" id="login-btn" onclick="doLogin()">Giriş Yap</button>
   </div>
-  <div class="login-anon" onclick="doAnon()">👻 Anonim devam et</div>
+
 </div>
 
 <header>
@@ -957,7 +957,8 @@ function loginSuccess(username, anonId) {
   localStorage.setItem('moodmap_uid', anonId);
   localStorage.setItem('moodmap_username', username);
   document.getElementById('login-screen').classList.add('hidden');
-  document.getElementById('username-display').textContent = '🎭 ' + username;
+  const el = document.getElementById('username-display');
+  if(el) el.textContent = '🎭 ' + username;
 }
 
 function showLogout() {
@@ -973,7 +974,8 @@ const savedUsername = localStorage.getItem('moodmap_username');
 if(savedUsername) {
   currentUsername = savedUsername;
   document.getElementById('login-screen').classList.add('hidden');
-  document.getElementById('username-display').textContent = savedUsername.startsWith('👻') ? savedUsername : '🎭 ' + savedUsername;
+  const el = document.getElementById('username-display');
+  if(el) el.textContent = '🎭 ' + savedUsername;
 }
 
 // Login input enter key

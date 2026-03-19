@@ -1325,7 +1325,8 @@ async function sendMessage() {
   const text = input.value.trim();
   if(!text || !currentMatchId) return;
   input.value = '';
-  await db.from('messages').insert({ match_id: currentMatchId, sender: myUserId, content: text, username: getChatName() });
+  const uname = currentUsername || localStorage.getItem('moodmap_username') || myAnonName;
+  await db.from('messages').insert({ match_id: currentMatchId, sender: myUserId, content: text, username: uname });
 }
 
 // Event listeners

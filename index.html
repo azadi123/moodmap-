@@ -576,8 +576,9 @@ function createMarkerIcon(mood) {
   const color=cat?cat.color:'#fff';
   const emoji=mood.emoji||cat?.emoji||'😶';
   const text=mood.message?`<span class="mood-text">${mood.message}</span>`:'';
+  const username=mood.username?`<span class="mood-username" style="color:${color};display:none;font-size:9px;font-weight:600;letter-spacing:0.3px">${mood.username}</span>`:'';
   return L.divIcon({
-    html:`<div class="mood-marker"><div class="mood-bubble"><div class="mood-dot" style="background:${color}"></div><span class="mood-emoji">${emoji}</span>${text}</div><div class="mood-tail"></div><div class="mood-pin"></div></div>`,
+    html:`<div class="mood-marker"><div class="mood-bubble"><div class="mood-dot" style="background:${color}"></div><span class="mood-emoji">${emoji}</span>${text}${username}</div><div class="mood-tail"></div><div class="mood-pin"></div></div>`,
     className:'', iconAnchor:[0,0], iconSize:null
   });
 }
@@ -587,9 +588,17 @@ function addMarkerToMap(mood) {
   const marker=L.marker([mood.lat,mood.lng],{icon:createMarkerIcon(mood)}).addTo(map);
   marker.on('click',function(e){
     L.DomEvent.stopPropagation(e);
-    document.querySelectorAll('.mood-bubble.expanded').forEach(b=>b.classList.remove('expanded'));
+    document.querySelectorAll('.mood-bubble.expanded').forEach(b=>{
+      b.classList.remove('expanded');
+      const u=b.querySelector('.mood-username');
+      if(u) u.style.display='none';
+    });
     const bubble=this.getElement()?.querySelector('.mood-bubble');
-    if(bubble) bubble.classList.add('expanded');
+    if(bubble){
+      bubble.classList.add('expanded');
+      const u=bubble.querySelector('.mood-username');
+      if(u) u.style.display='block';
+    }
   });
   leafletMarkers[mood.id]=marker;
 }
@@ -781,6 +790,7 @@ document.getElementById('submit-btn').onclick=async()=>{
       emoji:selectedEmoji||cat.emoji,
       message:document.getElementById('mood-text').value.trim().slice(0,60)||null,
       city_name:cityName,
+      username: currentUsername||null,
     });
     btn.disabled=false;btn.textContent='Paylaş 🚀';
     if(error){showToast('❌ '+T.error);console.error(error);return;}
@@ -1010,6 +1020,8 @@ if(!myUserId) {
   db.from('users').insert({anon_id: myUserId}).then(()=>{});
 }
 const myAnonName = ANON_NAMES[parseInt(myUserId.slice(2,4),36) % ANON_NAMES.length];
+// Use real username in chat if available
+function getChatName() { return currentUsername || myAnonName; }
 
 let chatState = 'none'; // none | searching | pending | request | active
 let currentMatchId = null;
@@ -1293,10 +1305,14 @@ function appendMessage(msg, role) {
   const el = document.createElement('div');
   el.className = 'msg-row ' + (isMine ? 'mine' : 'other');
   const time = new Date(msg.created_at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
-  const avatarName = isMine ? myAnonName : ANON_NAMES.filter(n=>n!==myAnonName)[0];
+  const myName = getChatName();
+  const otherName = myAnonName !== myName ? myAnonName : ANON_NAMES.filter(n=>n!==myAnonName)[0];
+  const avatarName = isMine ? myName : otherName;
+  const avatarIcon = avatarName.split(' ')[0];
   el.innerHTML = `
-    <div class="msg-avatar">${avatarName.split(' ')[0]}</div>
+    <div class="msg-avatar" title="${avatarName}">${avatarIcon.length > 2 ? avatarIcon : avatarName.slice(0,2)}</div>
     <div>
+      <div style="font-size:9px;color:var(--muted);margin-bottom:2px;${isMine?'text-align:right':''}">${avatarName}</div>
       <div class="msg-bubble">${msg.content}</div>
       <div class="msg-time">${time}</div>
     </div>`;

@@ -191,14 +191,14 @@
 <header>
   <div class="logo"></div>
   <div id="world-score" style="font-size:11px;color:var(--muted);font-weight:500;text-align:right;line-height:1.3">🌍 —</div>
-  <div class="live-badge"><div class="live-dot"></div> <span id="live-text">Canlı</span></div>
+  <div class="live-badge"><div class="live-dot"></div> <span id="live-text"></span></div>
 </header>
 
 <div id="map-wrap">
   <div id="map"></div>
 
   <div id="stats-bar">
-    <div class="stat-pill">🌍 <strong id="count-stat">0</strong> <span id="people-text">kişi</span></div>
+    <div class="stat-pill">🌍 <strong id="count-stat">0</strong> <span id="people-text"></span></div>
     <div class="stat-pill" id="top-mood-pill">🏆 —</div>
   </div>
 
@@ -225,7 +225,7 @@
 </div>
 
 <!-- CHAT BUTTON -->
-<button id="chat-btn" title="Anonim Sohbet">
+<button id="chat-btn" title="">
   💬
   <div id="chat-notif-dot"></div>
 </button>
@@ -236,7 +236,7 @@
   <div class="cp-header">
     <div class="cp-title" id="cp-title">💬 Anonim Sohbet</div>
     <div style="display:flex;gap:8px;align-items:center">
-      <button id="end-chat-btn" style="display:none;font-size:11px;padding:5px 10px;background:rgba(239,68,68,0.15);color:#f87171;border:1px solid rgba(239,68,68,0.3);border-radius:20px;cursor:pointer;font-family:DM Sans,sans-serif">Bitir</button>
+      <button id="end-chat-btn" style="display:none;font-size:11px;padding:5px 10px;background:rgba(239,68,68,0.15);color:#f87171;border:1px solid rgba(239,68,68,0.3);border-radius:20px;cursor:pointer;font-family:DM Sans,sans-serif" id="end-chat-btn-inner"></button>
       <span class="cp-close" id="cp-close">✕</span>
     </div>
   </div>
@@ -285,7 +285,7 @@
 <div id="bottom-sheet">
   <div class="sheet-handle"></div>
   <div class="sheet-title" id="sheet-title">Şu an nasıl hissediyorsun?</div>
-  <div class="sheet-sub" id="sheet-sub">Anonim olarak paylaşılacak.</div>
+  <div class="sheet-sub" id="sheet-sub"></div>
   <div class="msg-label" id="cat-label">Kategori seç</div>
   <div class="category-grid" id="cat-grid"></div>
   <div class="msg-label" id="emoji-label">Emoji seç</div>
@@ -727,28 +727,35 @@ document.getElementById('submit-btn').onclick=async()=>{
 // ── UI ────────────────────────────────────────────────────
 function applyTranslations() {
   const el = id => document.getElementById(id);
-  if(el('live-text')) el('live-text').textContent = T.live;
-  if(el('sheet-title')) el('sheet-title').textContent = T.howFeel;
-  if(el('sheet-sub')) el('sheet-sub').textContent = T.anonymous;
-  if(el('cat-label')) el('cat-label').textContent = T.selectCat;
-  if(el('emoji-label')) el('emoji-label').textContent = T.selectEmoji;
-  if(el('feel-label')) el('feel-label').textContent = T.whatFeel;
-  if(el('people-text')) el('people-text').textContent = T.people;
-  if(el('mood-text')) el('mood-text').placeholder = T.placeholder;
-  if(el('submit-btn')) el('submit-btn').textContent = T.share;
-  // Chat translations
-  if(el('cp-title')) el('cp-title').textContent = '💬 ' + (T.chatTitle||'Chat');
-  if(el('cs-none-title')) el('cs-none-title').textContent = T.shareMoodFirst||'Share mood first';
-  if(el('cs-none-sub')) el('cs-none-sub').textContent = T.shareMoodDesc||'';
-  if(el('pending-title')) el('pending-title').textContent = T.searching||'Searching...';
-  if(el('pending-sub')) el('pending-sub').textContent = T.searchingDesc||'';
-  if(el('cancel-search-btn')) el('cancel-search-btn').textContent = T.cancel||'Cancel';
-  if(el('request-title')) el('request-title').textContent = T.someoneWants||'Someone wants to chat';
-  if(el('request-sub')) el('request-sub').textContent = T.anonWants||'';
-  if(el('accept-btn')) el('accept-btn').textContent = T.accept||'Accept';
-  if(el('decline-btn')) el('decline-btn').textContent = T.decline||'Decline';
-  if(el('end-chat-btn')) el('end-chat-btn').textContent = T.endChat||'End';
-  if(el('chat-input')) el('chat-input').placeholder = T.msgPlaceholder||'Message...';
+  const set = (id, val) => { const e=el(id); if(e && val) e.textContent=val; };
+  const ph = (id, val) => { const e=el(id); if(e && val) e.placeholder=val; };
+
+  // Main UI
+  set('live-text', T.live);
+  set('sheet-title', T.howFeel);
+  set('sheet-sub', T.anonymous);
+  set('cat-label', T.selectCat);
+  set('emoji-label', T.selectEmoji);
+  set('feel-label', T.whatFeel);
+  set('people-text', T.people);
+  ph('mood-text', T.placeholder);
+  set('submit-btn', T.share);
+
+  // Chat panel
+  set('cp-title', '💬 ' + (T.chatTitle||'Chat'));
+  set('cs-none-title', T.shareMoodFirst);
+  set('cs-none-sub', T.shareMoodDesc);
+  set('pending-title', T.searching);
+  set('pending-sub', T.searchingDesc);
+  set('cancel-search-btn', T.cancel);
+  set('request-title', T.someoneWants);
+  set('request-sub', T.anonWants);
+  set('accept-btn', T.accept);
+  set('decline-btn', T.decline);
+  set('end-chat-btn', T.endChat);
+  ph('chat-input', T.msgPlaceholder);
+
+  // RTL for Arabic
   if(LANG === 'ar') document.body.style.direction = 'rtl';
 }
 

@@ -1310,9 +1310,9 @@ function appendMessage(msg, role) {
   const avatarName = isMine ? myName : otherName;
   const avatarIcon = avatarName.split(' ')[0];
   el.innerHTML = `
-    <div class="msg-avatar" title="${avatarName}">${avatarIcon.length > 2 ? avatarIcon : avatarName.slice(0,2)}</div>
+    <div class="msg-avatar" title="${avatarName}" style="font-size:11px">${avatarIcon.length > 2 ? avatarIcon : avatarName.slice(0,2).toUpperCase()}</div>
     <div>
-      <div style="font-size:9px;color:var(--muted);margin-bottom:2px;${isMine?'text-align:right':''}">${avatarName}</div>
+      <div style="font-size:9px;color:var(--muted);margin-bottom:3px;${isMine?'text-align:right':''}">${avatarName}</div>
       <div class="msg-bubble">${msg.content}</div>
       <div class="msg-time">${time}</div>
     </div>`;

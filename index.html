@@ -176,6 +176,33 @@
 
   #chat-messages::-webkit-scrollbar { width:3px; }
   #chat-messages::-webkit-scrollbar-thumb { background:var(--border); border-radius:2px; }
+
+  /* ── LOGIN SCREEN ──────────────────────────────────────── */
+  #login-screen {
+    position:fixed; inset:0; background:var(--bg);
+    z-index:9999; display:flex; flex-direction:column;
+    align-items:center; justify-content:center;
+    padding:32px 24px; max-width:430px; margin:0 auto;
+  }
+  #login-screen.hidden { display:none; }
+  .login-logo { font-family:'Syne',sans-serif; font-weight:800; font-size:32px; letter-spacing:-1px; margin-bottom:8px; }
+  .login-logo span { color:var(--accent); }
+  .login-tagline { font-size:14px; color:var(--muted); margin-bottom:48px; text-align:center; }
+  .login-tabs { display:flex; gap:4px; background:var(--surface); border-radius:16px; padding:4px; margin-bottom:28px; width:100%; }
+  .login-tab { flex:1; padding:10px; text-align:center; font-size:13px; font-weight:600; border-radius:12px; cursor:pointer; color:var(--muted); transition:all 0.2s; }
+  .login-tab.active { background:var(--accent); color:#fff; }
+  .login-form { width:100%; display:flex; flex-direction:column; gap:12px; }
+  .login-input { width:100%; background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:14px 18px; color:var(--text); font-family:'DM Sans',sans-serif; font-size:15px; outline:none; transition:border-color 0.2s; }
+  .login-input:focus { border-color:var(--accent); }
+  .login-input::placeholder { color:var(--muted); }
+  .login-btn { width:100%; padding:16px; background:var(--accent); border:none; border-radius:16px; color:#fff; font-family:'Syne',sans-serif; font-size:16px; font-weight:700; cursor:pointer; margin-top:8px; transition:all 0.2s; }
+  .login-btn:hover { opacity:0.9; }
+  .login-btn:disabled { opacity:0.4; cursor:not-allowed; }
+  .login-error { color:#f87171; font-size:13px; text-align:center; min-height:20px; }
+  .login-anon { margin-top:20px; font-size:13px; color:var(--muted); text-align:center; cursor:pointer; text-decoration:underline; }
+  .login-anon:hover { color:var(--text); }
+  .user-badge { display:flex; align-items:center; gap:6px; font-size:12px; color:var(--muted); cursor:pointer; }
+  .user-badge:hover { color:var(--text); }
   #bottom-sheet::-webkit-scrollbar { width:3px; }
   #bottom-sheet::-webkit-scrollbar-thumb { background:var(--border); border-radius:2px; }
 </style>
@@ -187,6 +214,23 @@
 <meta name="theme-color" content="#c084fc">
 </head>
 <body>
+
+<!-- LOGIN SCREEN -->
+<div id="login-screen">
+  <div class="login-logo">Mood<span>Map</span></div>
+  <div class="login-tagline" id="login-tagline">Anlık duygularını dünyayla paylaş</div>
+  <div class="login-tabs">
+    <div class="login-tab active" id="tab-login" onclick="switchTab('login')">Giriş Yap</div>
+    <div class="login-tab" id="tab-register" onclick="switchTab('register')">Kayıt Ol</div>
+  </div>
+  <div class="login-form">
+    <input class="login-input" id="login-username" placeholder="Takma isim" maxlength="20" autocomplete="username">
+    <input class="login-input" id="login-password" type="password" placeholder="Şifre" maxlength="50" autocomplete="current-password">
+    <div class="login-error" id="login-error"></div>
+    <button class="login-btn" id="login-btn" onclick="doLogin()">Giriş Yap</button>
+  </div>
+  <div class="login-anon" onclick="doAnon()">👻 Anonim devam et</div>
+</div>
 
 <header>
   <div class="logo"></div>
@@ -316,6 +360,10 @@ const TRANSLATIONS = {
     findMatch: 'Eşleşme Ara 🔍', searching: 'Eşleşme aranıyor...', searchingDesc: 'Yakınında aynı duyguyu hisseden biri aranıyor.',
     cancel: 'İptal', someoneWants: 'Biri seninle konuşmak istiyor', anonWants: 'Anonim bir kişi sana mesaj göndermek istiyor. Kabul eder misin?',
     accept: '✓ Kabul Et', decline: '✕ Reddet', endChat: 'Bitir', msgPlaceholder: 'Mesaj yaz...',
+    loginBtn: 'Giriş Yap', registerBtn: 'Kayıt Ol', fillAll: 'Lütfen tüm alanları doldur',
+    usernameTooShort: 'Takma isim en az 3 karakter olmalı', usernameTaken: 'Bu takma isim alınmış',
+    registerError: 'Kayıt başarısız', wrongCredentials: 'Yanlış takma isim veya şifre',
+    logoutConfirm: 'Çıkış yapmak istiyor musun?',
     worldScore: 'dünya pozitif',
   },
   en: {
@@ -332,6 +380,10 @@ const TRANSLATIONS = {
     findMatch: 'Find Match 🔍', searching: 'Searching for a match...', searchingDesc: 'Looking for someone nearby feeling the same.',
     cancel: 'Cancel', someoneWants: 'Someone wants to chat', anonWants: 'An anonymous person wants to message you. Accept?',
     accept: '✓ Accept', decline: '✕ Decline', endChat: 'End', msgPlaceholder: 'Type a message...',
+    loginBtn: 'Sign In', registerBtn: 'Register', fillAll: 'Please fill all fields',
+    usernameTooShort: 'Username must be at least 3 characters', usernameTaken: 'Username already taken',
+    registerError: 'Registration failed', wrongCredentials: 'Wrong username or password',
+    logoutConfirm: 'Sign out?',
     worldScore: 'world positive',
   },
   de: {
@@ -348,6 +400,10 @@ const TRANSLATIONS = {
     findMatch: 'Match finden 🔍', searching: 'Suche läuft...', searchingDesc: 'Suche nach jemandem in der Nähe mit derselben Stimmung.',
     cancel: 'Abbrechen', someoneWants: 'Jemand möchte chatten', anonWants: 'Eine anonyme Person möchte dir schreiben. Annehmen?',
     accept: '✓ Annehmen', decline: '✕ Ablehnen', endChat: 'Beenden', msgPlaceholder: 'Nachricht schreiben...',
+    loginBtn: 'Anmelden', registerBtn: 'Registrieren', fillAll: 'Bitte alle Felder ausfüllen',
+    usernameTooShort: 'Benutzername muss mindestens 3 Zeichen haben', usernameTaken: 'Benutzername bereits vergeben',
+    registerError: 'Registrierung fehlgeschlagen', wrongCredentials: 'Falscher Benutzername oder Passwort',
+    logoutConfirm: 'Abmelden?',
     worldScore: 'Welt positiv',
   },
   sv: {
@@ -364,6 +420,10 @@ const TRANSLATIONS = {
     findMatch: 'Hitta match 🔍', searching: 'Söker match...', searchingDesc: 'Söker efter någon i närheten med samma känsla.',
     cancel: 'Avbryt', someoneWants: 'Någon vill chatta', anonWants: 'En anonym person vill skicka ett meddelande. Acceptera?',
     accept: '✓ Acceptera', decline: '✕ Avvisa', endChat: 'Avsluta', msgPlaceholder: 'Skriv ett meddelande...',
+    loginBtn: 'Logga in', registerBtn: 'Registrera', fillAll: 'Fyll i alla fält',
+    usernameTooShort: 'Användarnamnet måste vara minst 3 tecken', usernameTaken: 'Användarnamnet är taget',
+    registerError: 'Registrering misslyckades', wrongCredentials: 'Fel användarnamn eller lösenord',
+    logoutConfirm: 'Logga ut?',
     worldScore: 'världen positiv',
   },
   fr: {
@@ -380,6 +440,10 @@ const TRANSLATIONS = {
     findMatch: "Trouver un match 🔍", searching: "Recherche en cours...", searchingDesc: "Recherche de quelqu'un à proximité ressentant la même chose.",
     cancel: "Annuler", someoneWants: "Quelqu'un veut chatter", anonWants: "Une personne anonyme veut vous envoyer un message. Accepter?",
     accept: '✓ Accepter', decline: '✕ Refuser', endChat: 'Terminer', msgPlaceholder: 'Écrire un message...',
+    loginBtn: 'Se connecter', registerBtn: "S'inscrire", fillAll: 'Veuillez remplir tous les champs',
+    usernameTooShort: "Le nom d'utilisateur doit avoir au moins 3 caractères", usernameTaken: "Nom d'utilisateur déjà pris",
+    registerError: "Échec de l'inscription", wrongCredentials: "Nom d'utilisateur ou mot de passe incorrect",
+    logoutConfirm: 'Se déconnecter?',
     worldScore: 'monde positif',
   },
   es: {
@@ -396,6 +460,10 @@ const TRANSLATIONS = {
     findMatch: 'Buscar match 🔍', searching: 'Buscando match...', searchingDesc: 'Buscando a alguien cercano con el mismo estado.',
     cancel: 'Cancelar', someoneWants: 'Alguien quiere chatear', anonWants: 'Una persona anónima quiere enviarte un mensaje. ¿Aceptar?',
     accept: '✓ Aceptar', decline: '✕ Rechazar', endChat: 'Terminar', msgPlaceholder: 'Escribe un mensaje...',
+    loginBtn: 'Iniciar sesión', registerBtn: 'Registrarse', fillAll: 'Por favor completa todos los campos',
+    usernameTooShort: 'El nombre de usuario debe tener al menos 3 caracteres', usernameTaken: 'Nombre de usuario ya en uso',
+    registerError: 'Error al registrarse', wrongCredentials: 'Usuario o contraseña incorrectos',
+    logoutConfirm: '¿Cerrar sesión?',
     worldScore: 'mundo positivo',
   },
   ar: {
@@ -412,6 +480,10 @@ const TRANSLATIONS = {
     findMatch: 'ابحث عن تطابق 🔍', searching: 'جارٍ البحث...', searchingDesc: 'البحث عن شخص قريب يشعر بنفس الشيء.',
     cancel: 'إلغاء', someoneWants: 'شخص ما يريد الدردشة', anonWants: 'شخص مجهول يريد إرسال رسالة إليك. قبول؟',
     accept: '✓ قبول', decline: '✕ رفض', endChat: 'إنهاء', msgPlaceholder: 'اكتب رسالة...',
+    loginBtn: 'تسجيل الدخول', registerBtn: 'إنشاء حساب', fillAll: 'يرجى ملء جميع الحقول',
+    usernameTooShort: 'يجب أن يكون اسم المستخدم 3 أحرف على الأقل', usernameTaken: 'اسم المستخدم مأخوذ',
+    registerError: 'فشل التسجيل', wrongCredentials: 'اسم المستخدم أو كلمة المرور خاطئة',
+    logoutConfirm: 'تسجيل الخروج؟',
     worldScore: 'العالم إيجابي',
   },
 };
@@ -755,6 +827,19 @@ function applyTranslations() {
   set('end-chat-btn', T.endChat);
   ph('chat-input', T.msgPlaceholder);
 
+  // Login screen
+  const lt = document.getElementById('login-tagline');
+  if(lt) lt.textContent = T.anonymous||'';
+  const tabL = document.getElementById('tab-login');
+  if(tabL) tabL.textContent = T.loginBtn||'Sign In';
+  const tabR = document.getElementById('tab-register');
+  if(tabR) tabR.textContent = T.registerBtn||'Register';
+  const lBtn = document.getElementById('login-btn');
+  if(lBtn) lBtn.textContent = loginMode==='login' ? (T.loginBtn||'Sign In') : (T.registerBtn||'Register');
+  const uInput = document.getElementById('login-username');
+  if(uInput) uInput.placeholder = '🎭 ' + (T.chatTitle||'Username');
+  const pInput = document.getElementById('login-password');
+  if(pInput) pInput.placeholder = '🔑 ' + (T.msgPlaceholder||'Password').replace('...','').trim();
   // RTL for Arabic
   if(LANG === 'ar') document.body.style.direction = 'rtl';
 }
@@ -802,6 +887,98 @@ function showToast(msg){
 document.getElementById('fab').onclick=()=>sheetOpen?closeSheet():openSheet();
 document.getElementById('overlay').onclick=closeSheet;
 
+
+
+// ── AUTH SYSTEM ───────────────────────────────────────────
+let currentUsername = null;
+let loginMode = 'login';
+
+function switchTab(mode) {
+  loginMode = mode;
+  document.getElementById('tab-login').classList.toggle('active', mode==='login');
+  document.getElementById('tab-register').classList.toggle('active', mode==='register');
+  document.getElementById('login-btn').textContent = mode==='login' ? (T.loginBtn||'Sign In') : (T.registerBtn||'Register');
+  document.getElementById('login-error').textContent = '';
+}
+
+async function hashPassword(password) {
+  const msgBuffer = new TextEncoder().encode(password);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+async function doLogin() {
+  const username = document.getElementById('login-username').value.trim().toLowerCase();
+  const password = document.getElementById('login-password').value;
+  const errEl = document.getElementById('login-error');
+  const btn = document.getElementById('login-btn');
+
+  if(!username || !password) { errEl.textContent = T.fillAll||'Please fill all fields'; return; }
+  if(username.length < 3) { errEl.textContent = T.usernameTooShort||'Username must be at least 3 characters'; return; }
+
+  btn.disabled = true; btn.textContent = '...';
+  errEl.textContent = '';
+
+  const hash = await hashPassword(password);
+
+  if(loginMode === 'register') {
+    // Check if username taken
+    const {data: existing} = await db.from('users').select('id').eq('username', username).single();
+    if(existing) { errEl.textContent = T.usernameTaken||'Username already taken'; btn.disabled=false; switchTab('register'); return; }
+    // Create account
+    const {data, error} = await db.from('users').insert({
+      anon_id: myUserId, username, password_hash: hash
+    }).select().single();
+    if(error) { errEl.textContent = T.registerError||'Registration failed'; btn.disabled=false; switchTab('register'); return; }
+    loginSuccess(username, data.anon_id);
+  } else {
+    // Login
+    const {data, error} = await db.from('users').select('*').eq('username', username).eq('password_hash', hash).single();
+    if(error || !data) { errEl.textContent = T.wrongCredentials||'Wrong username or password'; btn.disabled=false; btn.textContent = T.loginBtn||'Sign In'; return; }
+    // Update myUserId to match account
+    myUserId = data.anon_id;
+    localStorage.setItem('moodmap_uid', myUserId);
+    loginSuccess(username, data.anon_id);
+  }
+}
+
+function doAnon() {
+  // Use existing anonymous ID
+  currentUsername = '👻 ' + myUserId.slice(2,8);
+  localStorage.setItem('moodmap_username', currentUsername);
+  document.getElementById('login-screen').classList.add('hidden');
+  document.getElementById('username-display').textContent = currentUsername;
+}
+
+function loginSuccess(username, anonId) {
+  currentUsername = username;
+  myUserId = anonId;
+  localStorage.setItem('moodmap_uid', anonId);
+  localStorage.setItem('moodmap_username', username);
+  document.getElementById('login-screen').classList.add('hidden');
+  document.getElementById('username-display').textContent = '🎭 ' + username;
+}
+
+function showLogout() {
+  if(confirm((T.logoutConfirm||'Sign out?'))) {
+    localStorage.removeItem('moodmap_username');
+    currentUsername = null;
+    location.reload();
+  }
+}
+
+// Check if already logged in
+const savedUsername = localStorage.getItem('moodmap_username');
+if(savedUsername) {
+  currentUsername = savedUsername;
+  document.getElementById('login-screen').classList.add('hidden');
+  document.getElementById('username-display').textContent = savedUsername.startsWith('👻') ? savedUsername : '🎭 ' + savedUsername;
+}
+
+// Login input enter key
+document.getElementById('login-username').addEventListener('keydown', e => { if(e.key==='Enter') document.getElementById('login-password').focus(); });
+document.getElementById('login-password').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
 
 // ── CHAT SYSTEM ───────────────────────────────────────────
 const ANON_NAMES = ['🦊 Kızıl Tilki','🐺 Gri Kurt','🦁 Aslan','🐻 Ayı','🦋 Kelebek','🦅 Kartal','🐬 Yunus','🦉 Baykuş','🐯 Kaplan','🦄 Unicorn','🐸 Kurbağa','🦚 Tavuskuşu'];

@@ -244,25 +244,25 @@
   <!-- No mood shared yet -->
   <div id="chat-state-none">
     <div class="chat-state-icon">🗺️</div>
-    <div class="chat-state-title">Önce duygu paylaş</div>
-    <div class="chat-state-sub">Aynı duyguyu hisseden ve 50km yakınındaki biriyle eşleşmek için önce haritaya duygununu bırak.</div>
+    <div class="chat-state-title" id="cs-none-title"></div>
+    <div class="chat-state-sub" id="cs-none-sub"></div>
   </div>
 
   <!-- Looking for match -->
   <div id="chat-state-pending" style="display:none">
     <div class="chat-state-icon" style="animation:pulse 1.5s infinite">🔍</div>
-    <div class="chat-state-title" id="pending-title">Eşleşme aranıyor...</div>
-    <div class="chat-state-sub" id="pending-sub">Yakınında aynı duyguyu hisseden biri aranıyor.</div>
-    <button class="chat-action-btn secondary" id="cancel-search-btn">İptal</button>
+    <div class="chat-state-title" id="pending-title"></div>
+    <div class="chat-state-sub" id="pending-sub"></div>
+    <button class="chat-action-btn secondary" id="cancel-search-btn"></button>
   </div>
 
   <!-- Incoming request -->
   <div id="chat-state-request" style="display:none">
     <div class="chat-state-icon">👋</div>
-    <div class="chat-state-title" id="request-title">Biri seninle konuşmak istiyor</div>
-    <div class="chat-state-sub" id="request-sub">Anonim bir kişi sana mesaj göndermek istiyor. Kabul eder misin?</div>
-    <button class="chat-action-btn" id="accept-btn">✓ Kabul Et</button>
-    <button class="chat-action-btn secondary" id="decline-btn">✕ Reddet</button>
+    <div class="chat-state-title" id="request-title"></div>
+    <div class="chat-state-sub" id="request-sub"></div>
+    <button class="chat-action-btn" id="accept-btn"></button>
+    <button class="chat-action-btn secondary" id="decline-btn"></button>
   </div>
 
   <!-- Active chat -->
@@ -271,7 +271,7 @@
     <div class="timer-bar" id="timer-bar" style="width:100%"></div>
     <div id="chat-messages"></div>
     <div id="chat-input-row">
-      <input id="chat-input" placeholder="Mesaj yaz..." maxlength="200">
+      <input id="chat-input" placeholder="" maxlength="200">
       <button id="chat-send">➤</button>
     </div>
   </div>
@@ -843,9 +843,9 @@ function openChatPanel() {
   // Show find match option if mood shared
   document.getElementById('chat-state-none').innerHTML = `
     <div class="chat-state-icon">💬</div>
-    <div class="chat-state-title">Anonim Sohbet</div>
-    <div class="chat-state-sub">50km yakınında <strong style="color:var(--accent)">${myLastMood.cat_label}</strong> hisseden biriyle eşleş. Kimliğin gizli kalır.</div>
-    <button class="chat-action-btn" id="find-match-btn">Eşleşme Ara 🔍</button>
+    <div class="chat-state-title">${T.chatTitle||'Chat'}</div>
+    <div class="chat-state-sub">${T.shareMoodDesc||''} <strong style="color:var(--accent)">${myLastMood.cat_label}</strong></div>
+    <button class="chat-action-btn" id="find-match-btn">${T.findMatch||'Find Match 🔍'}</button>
   `;
   document.getElementById('find-match-btn')?.addEventListener('click', findMatch);
 }
@@ -1029,19 +1029,21 @@ function updateTimer(endTime) {
   if(barEl) barEl.style.width = (remaining / (60*60*1000) * 100) + '%';
 }
 
-function endChat(manual=false) {
-  if(manual && currentMatchId) {
-    db.from('matches').update({status:'ended'}).eq('id', currentMatchId);
-  }
+async function endChat(manual=false) {
+  const endedMatchId = currentMatchId;
+  // Clear state first
   clearInterval(chatTimerInterval);
-  showToast(manual ? '👋 Sohbet sonlandırıldı' : '⏰ Sohbet süresi doldu');
+  clearInterval(pollInterval); pollInterval = null;
+  if(matchSubscription) { clearInterval(matchSubscription); matchSubscription = null; }
+  if(msgSubscription) { msgSubscription.unsubscribe(); msgSubscription = null; }
   chatState = 'none';
   currentMatchId = null;
   currentMatch = null;
-  if(pollInterval) { clearInterval(pollInterval); pollInterval = null; }
-  if(matchSubscription) { clearInterval(matchSubscription); matchSubscription = null; }
-  if(msgSubscription) { msgSubscription.unsubscribe(); msgSubscription = null; }
-  // Show find new match option
+  // Update DB after clearing state
+  if(manual && endedMatchId) {
+    await db.from('matches').update({status:'ended'}).eq('id', endedMatchId);
+  }
+  showToast(manual ? '👋 Sohbet sonlandırıldı' : '⏰ Sohbet süresi doldu');
   openChatPanel();
 }
 
